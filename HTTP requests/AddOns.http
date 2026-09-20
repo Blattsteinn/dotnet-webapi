@@ -1,0 +1,41 @@
+@FoodOrderingApi_HostAddress = http://localhost:5258
+@addOnCategoryId = 2
+@addOnId = 1
+
+# Get all add-ons of an add-on category
+GET {{FoodOrderingApi_HostAddress}}/api/v1/add-on-categories/{{addOnCategoryId}}/add-ons
+Accept: application/json
+
+###
+
+# Get an add-on by id
+GET {{FoodOrderingApi_HostAddress}}/api/v1/add-on-categories/{{addOnCategoryId}}/add-ons/{{addOnId}}
+Accept: application/json
+
+###
+
+# Create an add-on
+POST {{FoodOrderingApi_HostAddress}}/api/v1/add-on-categories/{{addOnCategoryId}}/add-ons
+Content-Type: application/json
+
+{
+    "name": "Extra Cheese",
+    "price": 1.50,
+    "hidden": false
+}
+
+###
+
+# Update an add-on (partial - omitted fields are left unchanged)
+PATCH {{FoodOrderingApi_HostAddress}}/api/v1/add-on-categories/{{addOnCategoryId}}/add-ons/{{addOnId}}
+Content-Type: application/json
+
+{
+    "price": 2.00
+}
+
+###
+
+# Delete an add-on
+DELETE {{FoodOrderingApi_HostAddress}}/api/v1/add-on-categories/{{addOnCategoryId}}/add-ons/2
+Accept: application/json

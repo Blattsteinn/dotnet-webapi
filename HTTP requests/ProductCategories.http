@@ -1,0 +1,42 @@
+@FoodOrderingApi_HostAddress = http://localhost:5258
+@placeId = 1
+@productCategoryId = 5
+
+# Get all product categories of a place
+GET {{FoodOrderingApi_HostAddress}}/api/v1/places/{{placeId}}/product-categories
+Accept: application/json
+
+###
+
+# Get a product category by id
+GET {{FoodOrderingApi_HostAddress}}/api/v1/places/{{placeId}}/product-categories/{{productCategoryId}}
+Accept: application/json
+
+###
+
+# Create a product category
+POST {{FoodOrderingApi_HostAddress}}/api/v1/places/{{placeId}}/product-categories
+Content-Type: application/json
+
+{
+    "name": "CoolCategory Burger",
+    "description": "Burgers of the cool variety",
+    "hidden": false
+}
+
+###
+
+# Update a product category
+PATCH {{FoodOrderingApi_HostAddress}}/api/v1/places/{{placeId}}/product-categories/{{productCategoryId}}
+Content-Type: application/json
+
+{
+    "name": "Patched Burgeeers",
+    "hidden": true
+}
+
+###
+
+# Delete a product category
+DELETE {{FoodOrderingApi_HostAddress}}/api/v1/places/{{placeId}}/product-categories/7
+Accept: application/json

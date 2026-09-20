@@ -1,0 +1,25 @@
+@FoodOrderingApi_HostAddress = http://localhost:5258
+@productId = 1
+@addOnCategoryId = 2
+
+# Get all add-on categories of a product
+GET {{FoodOrderingApi_HostAddress}}/api/v1/products/{{productId}}/add-on-categories
+Accept: application/json
+
+###
+
+# Get an add-on category by id
+GET {{FoodOrderingApi_HostAddress}}/api/v1/products/{{productId}}/add-on-categories/{{addOnCategoryId}}
+Accept: application/json
+
+###
+
+# Create an add-on category
+POST {{FoodOrderingApi_HostAddress}}/api/v1/products/{{productId}}/add-on-categories
+Content-Type: application/json
+
+{
+    "name": "Toppings",
+    "required": true,
+    "multichoice": false
+}

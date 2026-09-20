@@ -1,0 +1,31 @@
+@FoodOrderingApi_HostAddress = http://localhost:5258
+@productCategoryId = 2
+@productId = 2
+
+# Get all products of a product category
+GET {{FoodOrderingApi_HostAddress}}/api/v1/product-categories/{{productCategoryId}}/products
+Accept: application/json
+
+###
+
+# Get a product by id
+GET {{FoodOrderingApi_HostAddress}}/api/v1/product-categories/{{productCategoryId}}/products/{{productId}}
+Accept: application/json
+
+###
+
+# Create a product
+POST {{FoodOrderingApi_HostAddress}}/api/v1/product-categories/{{productCategoryId}}/products
+Content-Type: application/json
+
+{
+    "name": "Pizza",
+    "description": "A delicious pizza",
+    "price": 12.99
+}
+
+###
+
+# Delete a product
+DELETE {{FoodOrderingApi_HostAddress}}/api/v1/product-categories/{{productCategoryId}}/products/{{productId}}
+Accept: application/json

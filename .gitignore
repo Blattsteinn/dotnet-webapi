@@ -1,0 +1,40 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# VS Code
+.vscode/
+
+# User-specific files
+*.user
+*.rsuser
+*.sln.docstates
+
+# Test results
+TestResults/
+*.trx
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# ASP.NET / local development
+appsettings.Development.json
+
+# SQLite database
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db*.db
