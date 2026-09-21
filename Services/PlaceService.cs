@@ -21,43 +21,19 @@ public class PlaceService
         return _db.Places.ToList();
     }
 
-    public PlaceResponse? Get(int id)
+    public Place? Get(int id)
     {
-        var place = _db.Places
-        .Include(p => p.ProductCategories
-             .Where(pc => !pc.Hidden))
-        .ThenInclude(pc => pc.Products
-            .Where(p => !p.Hidden))
-        .FirstOrDefault(p => p.Id == id);
+        Place? place = _db.Places.Find(id);
 
         if (place == null)
             return null;
 
-        return new PlaceResponse(
-            place.Id,
-            place.Latitude,
-            place.Longtitude,
-            place.Name,
-            place.Description,
-            place.ProductCategories
-                .Select(pc => new ProductCategoryResponse(
-                    pc.Id,
-                    pc.Name,
-                    pc.Description,
-                    pc.Hidden,
-                    pc.Products
-                        .Select(p => new ProductResponse(
-                            p.Id,
-                            p.Name,
-                            p.Description,
-                            p.Hidden,
-                            p.Price
-                        ))
-                        .ToList()
-                ))
-                .ToList()
-        );
+        if (place == null)
+            return null;
+
+        return place;
     }
+    
     public Place Add(Place place)
     {
         _db.Places.Add(place);

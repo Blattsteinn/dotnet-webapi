@@ -1,6 +1,6 @@
-namespace FoodOrderingApi.DTOs;
+namespace FoodOrderingApi.Dtos.AddOnCategory;
 
-public record AddOnCategoryCreate(
+public record CreateAddOnCategoryDto(
     int Id,
     int ProductId,
     bool Required,

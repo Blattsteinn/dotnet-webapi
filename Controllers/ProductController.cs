@@ -2,8 +2,8 @@
 
 using FoodOrderingApi.Models;
 using Microsoft.AspNetCore.Mvc;
-using FoodOrderingApi.DTOs;
 using FoodOrderingApi.Dtos.Product;
+using FoodOrderingApi.DTOs;
 
 namespace FoodOrderingApi.Controllers;
 
@@ -46,7 +46,7 @@ public class ProductController : ControllerBase
         if(newProduct == null)
             return NotFound("Product category does not exist.");
 
-        return Ok(new ProductResponse(
+        return Ok(new CreateProductDto(
             newProduct.Id,
             newProduct.Name,
             newProduct.Description,

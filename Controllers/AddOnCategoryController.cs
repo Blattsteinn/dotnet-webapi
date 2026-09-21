@@ -3,8 +3,6 @@ using FoodOrderingApi.Models;
 using FoodOrderingApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using FoodOrderingApi.Dtos.AddOnCategory;
-using FoodOrderingApi.DTOs;
-using System.Security.Cryptography.X509Certificates;
 
 [ApiController]
 [Route("api/v1/products/{productId}/add-on-categories")]
@@ -43,7 +41,7 @@ public class AddOnCategoryController : ControllerBase
         if(newAddOnCategory == null)
             return NotFound("Product does not exists");
         
-        return Ok(new AddOnCategoryCreate(
+        return Ok(new CreateAddOnCategoryDto(
             newAddOnCategory.Id,
             newAddOnCategory.ProductId,
             newAddOnCategory.Required,

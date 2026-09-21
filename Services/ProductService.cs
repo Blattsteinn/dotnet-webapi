@@ -27,10 +27,7 @@ public class ProductService
 
     public Product? Get(int id, int productCategoryId)
     {
-        Product? product = _db.Products
-        .Include(p => p.AddOnCategories)
-        .ThenInclude(aoc => aoc.AddOns)
-        .FirstOrDefault(p => p.Id == id);
+        Product? product = _db.Products.Find(id);
 
         if(product == null || product.ProductCategoryId != productCategoryId)
             return null;
