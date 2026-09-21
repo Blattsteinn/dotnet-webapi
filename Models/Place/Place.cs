@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace FoodOrderingApi.Models;
+namespace FoodOrderingApi.Models.Places;
 
 public class Place
 {

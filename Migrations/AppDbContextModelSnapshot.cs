@@ -17,59 +17,7 @@ namespace FoodOrderingApi.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
 
-            modelBuilder.Entity("FoodOrderingApi.Models.AddOn", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AddOnCategoryId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("Hidden")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AddOnCategoryId");
-
-                    b.ToTable("AddOns");
-                });
-
-            modelBuilder.Entity("FoodOrderingApi.Models.AddOnCategory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("Multichoice")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("Required")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("AddOnCategories");
-                });
-
-            modelBuilder.Entity("FoodOrderingApi.Models.Order", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Orders.Order", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -91,7 +39,7 @@ namespace FoodOrderingApi.Migrations
                     b.ToTable("Orders");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.OrderItem", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Orders.OrderItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -122,7 +70,7 @@ namespace FoodOrderingApi.Migrations
                     b.ToTable("OrderItems");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.OrderItemAddOn", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Orders.OrderItemAddOn", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -153,7 +101,59 @@ namespace FoodOrderingApi.Migrations
                     b.ToTable("OrderItemAddOns");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.Place", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.AddOn", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("AddOnCategoryId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Hidden")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddOnCategoryId");
+
+                    b.ToTable("AddOns");
+                });
+
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.AddOnCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Multichoice")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Required")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("AddOnCategories");
+                });
+
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.Place", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -177,7 +177,7 @@ namespace FoodOrderingApi.Migrations
                     b.ToTable("Places");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.Product", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.Product", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -207,7 +207,7 @@ namespace FoodOrderingApi.Migrations
                     b.ToTable("Products");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.ProductCategory", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.ProductCategory", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -233,31 +233,9 @@ namespace FoodOrderingApi.Migrations
                     b.ToTable("ProductCategories");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.AddOn", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Orders.Order", b =>
                 {
-                    b.HasOne("FoodOrderingApi.Models.AddOnCategory", "AddOnCategory")
-                        .WithMany("AddOns")
-                        .HasForeignKey("AddOnCategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AddOnCategory");
-                });
-
-            modelBuilder.Entity("FoodOrderingApi.Models.AddOnCategory", b =>
-                {
-                    b.HasOne("FoodOrderingApi.Models.Product", "Product")
-                        .WithMany("AddOnCategories")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-                });
-
-            modelBuilder.Entity("FoodOrderingApi.Models.Order", b =>
-                {
-                    b.HasOne("FoodOrderingApi.Models.Place", "Place")
+                    b.HasOne("FoodOrderingApi.Models.Places.Place", "Place")
                         .WithMany()
                         .HasForeignKey("PlaceId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -266,15 +244,15 @@ namespace FoodOrderingApi.Migrations
                     b.Navigation("Place");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.OrderItem", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Orders.OrderItem", b =>
                 {
-                    b.HasOne("FoodOrderingApi.Models.Order", "Order")
+                    b.HasOne("FoodOrderingApi.Models.Orders.Order", "Order")
                         .WithMany("OrderItems")
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("FoodOrderingApi.Models.Product", "Product")
+                    b.HasOne("FoodOrderingApi.Models.Places.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -285,15 +263,15 @@ namespace FoodOrderingApi.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.OrderItemAddOn", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Orders.OrderItemAddOn", b =>
                 {
-                    b.HasOne("FoodOrderingApi.Models.AddOn", "AddOn")
+                    b.HasOne("FoodOrderingApi.Models.Places.AddOn", "AddOn")
                         .WithMany()
                         .HasForeignKey("AddOnId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("FoodOrderingApi.Models.OrderItem", "OrderItem")
+                    b.HasOne("FoodOrderingApi.Models.Orders.OrderItem", "OrderItem")
                         .WithMany("OrderItemAddOns")
                         .HasForeignKey("OrderItemId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -304,9 +282,31 @@ namespace FoodOrderingApi.Migrations
                     b.Navigation("OrderItem");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.Product", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.AddOn", b =>
                 {
-                    b.HasOne("FoodOrderingApi.Models.ProductCategory", "ProductCategory")
+                    b.HasOne("FoodOrderingApi.Models.Places.AddOnCategory", "AddOnCategory")
+                        .WithMany("AddOns")
+                        .HasForeignKey("AddOnCategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AddOnCategory");
+                });
+
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.AddOnCategory", b =>
+                {
+                    b.HasOne("FoodOrderingApi.Models.Places.Product", "Product")
+                        .WithMany("AddOnCategories")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.Product", b =>
+                {
+                    b.HasOne("FoodOrderingApi.Models.Places.ProductCategory", "ProductCategory")
                         .WithMany("Products")
                         .HasForeignKey("ProductCategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -315,9 +315,9 @@ namespace FoodOrderingApi.Migrations
                     b.Navigation("ProductCategory");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.ProductCategory", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.ProductCategory", b =>
                 {
-                    b.HasOne("FoodOrderingApi.Models.Place", "Place")
+                    b.HasOne("FoodOrderingApi.Models.Places.Place", "Place")
                         .WithMany("ProductCategories")
                         .HasForeignKey("PlaceId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -326,32 +326,32 @@ namespace FoodOrderingApi.Migrations
                     b.Navigation("Place");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.AddOnCategory", b =>
-                {
-                    b.Navigation("AddOns");
-                });
-
-            modelBuilder.Entity("FoodOrderingApi.Models.Order", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Orders.Order", b =>
                 {
                     b.Navigation("OrderItems");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.OrderItem", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Orders.OrderItem", b =>
                 {
                     b.Navigation("OrderItemAddOns");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.Place", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.AddOnCategory", b =>
+                {
+                    b.Navigation("AddOns");
+                });
+
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.Place", b =>
                 {
                     b.Navigation("ProductCategories");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.Product", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.Product", b =>
                 {
                     b.Navigation("AddOnCategories");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.ProductCategory", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.ProductCategory", b =>
                 {
                     b.Navigation("Products");
                 });

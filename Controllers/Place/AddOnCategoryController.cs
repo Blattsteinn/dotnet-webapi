@@ -1,8 +1,10 @@
 
-using FoodOrderingApi.Models;
-using FoodOrderingApi.Services;
+using FoodOrderingApi.Models.Places;
+using FoodOrderingApi.Services.Places;
 using Microsoft.AspNetCore.Mvc;
 using FoodOrderingApi.Dtos.AddOnCategory;
+
+namespace FoodOrderingApi.Controllers.Places;
 
 [ApiController]
 [Route("api/v1/products/{productId}/add-on-categories")]

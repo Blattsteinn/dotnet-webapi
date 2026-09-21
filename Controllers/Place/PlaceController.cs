@@ -1,10 +1,10 @@
-using FoodOrderingApi.Services;
+using FoodOrderingApi.Services.Places;
 using Microsoft.AspNetCore.Mvc;
-using FoodOrderingApi.Models;
+using FoodOrderingApi.Models.Places;
 
 using FoodOrderingApi.Dtos.Places;
 
-namespace FoodOrderingApi.Controllers;
+namespace FoodOrderingApi.Controllers.Places;
 
 [ApiController]
 [Route("api/v1/places")]

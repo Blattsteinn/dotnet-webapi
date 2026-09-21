@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 
 using FoodOrderingApi.Data;
-using FoodOrderingApi.Models;
+using FoodOrderingApi.Models.Places;
 
 using FoodOrderingApi.Dtos.Places;
 
-namespace FoodOrderingApi.Services;
+namespace FoodOrderingApi.Services.Places;
 
 public class PlaceService
 {

@@ -1,9 +1,9 @@
 
 using FoodOrderingApi.Data;
-using FoodOrderingApi.Models;
+using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Dtos.AddOn;
 
-namespace FoodOrderingApi.Services;
+namespace FoodOrderingApi.Services.Places;
 public class AddOnService
 {
     private readonly AppDbContext _db;

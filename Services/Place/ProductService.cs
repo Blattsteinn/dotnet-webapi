@@ -1,8 +1,10 @@
 using FoodOrderingApi.Data;
-using FoodOrderingApi.Models;
+using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Dtos.Product;
 
 using Microsoft.EntityFrameworkCore;
+
+namespace FoodOrderingApi.Services.Places;
 
 public class ProductService
 {

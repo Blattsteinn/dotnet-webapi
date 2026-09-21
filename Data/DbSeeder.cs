@@ -1,4 +1,4 @@
-using FoodOrderingApi.Models;
+using FoodOrderingApi.Models.Places;
 
 namespace FoodOrderingApi.Data;
 

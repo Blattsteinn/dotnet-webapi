@@ -3,10 +3,11 @@
 using Microsoft.EntityFrameworkCore;
 
 using FoodOrderingApi.Data;
-using FoodOrderingApi.Models;
+using FoodOrderingApi.Models.Orders;
+using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Dtos.OrderItem;
 
-namespace FoodOrderingApi.Services;
+namespace FoodOrderingApi.Services.Orders;
 
 public enum AddOrderItemResult
 {

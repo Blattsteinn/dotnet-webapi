@@ -1,9 +1,9 @@
 
 using FoodOrderingApi.Data;
-using FoodOrderingApi.Models;
+using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Dtos.AddOnCategory;
 
-namespace FoodOrderingApi.Services;
+namespace FoodOrderingApi.Services.Places;
 
 public class AddOnCategoryService
 {

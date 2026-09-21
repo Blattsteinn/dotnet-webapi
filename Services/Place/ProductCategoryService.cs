@@ -1,8 +1,8 @@
 using FoodOrderingApi.Data;
-using FoodOrderingApi.Models;
+using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Dtos.ProductCategory;
 
-namespace FoodOrderingApi.Services;
+namespace FoodOrderingApi.Services.Places;
 
 public class ProductCategoryService
 {

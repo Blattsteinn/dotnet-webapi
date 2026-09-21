@@ -1,5 +1,3 @@
-using FoodOrderingApi.Models;
-
 namespace FoodOrderingApi.Dtos.Product;
 
 public record CreateProductDto(

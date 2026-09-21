@@ -1,10 +1,11 @@
 
 
 using FoodOrderingApi.Data;
-using FoodOrderingApi.Models;
+using FoodOrderingApi.Models.Orders;
+using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Dtos.Order;
 
-namespace FoodOrderingApi.Services;
+namespace FoodOrderingApi.Services.Orders;
 
 public class OrderService
 {

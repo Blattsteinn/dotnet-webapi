@@ -1,5 +1,8 @@
 
-namespace FoodOrderingApi.Models;
+using FoodOrderingApi.Models.Places;
+
+namespace FoodOrderingApi.Models.Orders;
+
 public class Order
 {
     public int Id { get; set; }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using FoodOrderingApi.Models;
+using FoodOrderingApi.Models.Orders;
+using FoodOrderingApi.Models.Places;
 
 namespace FoodOrderingApi.Data;
 public class AppDbContext : DbContext

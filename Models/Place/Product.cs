@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace FoodOrderingApi.Models;
+namespace FoodOrderingApi.Models.Places;
 public class Product
 {
     public int Id { get; set;}

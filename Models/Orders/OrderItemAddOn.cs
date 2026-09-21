@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace FoodOrderingApi.Models;
+using FoodOrderingApi.Models.Places;
+
+namespace FoodOrderingApi.Models.Orders;
 public class OrderItemAddOn
 {
     public int Id { get; set; }

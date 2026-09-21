@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using FoodOrderingApi.Data;
-using FoodOrderingApi.Services;
+using FoodOrderingApi.Services.Orders;
+using FoodOrderingApi.Services.Places;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);

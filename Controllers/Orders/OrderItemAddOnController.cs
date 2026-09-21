@@ -1,10 +1,10 @@
 
-using FoodOrderingApi.Models;
-using FoodOrderingApi.Services;
+using FoodOrderingApi.Models.Orders;
+using FoodOrderingApi.Services.Orders;
 using FoodOrderingApi.Dtos.OrderItemAddOn;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FoodOrderingApi.Controllers;
+namespace FoodOrderingApi.Controllers.Orders;
 
 [ApiController]
 [Route("api/v1/order-items/{OrderItemId}/add-ons")]
