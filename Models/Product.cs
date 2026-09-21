@@ -20,6 +20,6 @@ public class Product
     public bool Hidden { get; set; } = true;
 
     [Required]
-    [Range(0.00, double.MaxValue)]
+    [Range(typeof(decimal), "0.00", "10000")]
     public decimal Price { get; set; }
 }

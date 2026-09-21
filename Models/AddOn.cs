@@ -13,8 +13,7 @@ public class AddOn
     [Required]
     public required string Name { get; set; }
 
-    [Required]
-    [Range(0.00, double.MaxValue)]
+    [Range(0, 10000)]
     public decimal Price { get; set; }
 
     public bool Hidden { get; set; } = true;

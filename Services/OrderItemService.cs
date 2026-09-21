@@ -54,9 +54,6 @@ public class OrderItemService
         if (product == null)
             return (AddOrderItemResult.ProductNotFound, null);
 
-        // TODO: validate submitted addOnIds belong to this product's AddOnCategories,
-        // then create the OrderItemAddOn rows (OrderItemAddOn not implemented yet).
-
         OrderItem orderItem = new OrderItem
         {
             OrderId = orderId,

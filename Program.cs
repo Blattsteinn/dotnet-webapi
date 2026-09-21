@@ -24,6 +24,7 @@ builder.Services.AddScoped<AddOnCategoryService>();
 builder.Services.AddScoped<AddOnService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<OrderItemService>();
+builder.Services.AddScoped<OrderItemAddOnService>();
 
 // JSON cycle ignoring
 builder.Services.AddControllers()
