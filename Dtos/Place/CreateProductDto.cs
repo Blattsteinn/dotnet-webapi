@@ -1,4 +1,4 @@
-namespace FoodOrderingApi.Dtos.Product;
+namespace FoodOrderingApi.Dtos.Places;
 
 public record CreateProductDto(
     int Id,

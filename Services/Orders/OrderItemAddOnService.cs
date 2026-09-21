@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using FoodOrderingApi.Data;
 using FoodOrderingApi.Models.Orders;
 using FoodOrderingApi.Models.Places;
-using FoodOrderingApi.Dtos.OrderItemAddOn;
+using FoodOrderingApi.Dtos.Orders;
 namespace FoodOrderingApi.Services.Orders;
 
 public class OrderItemAddOnService

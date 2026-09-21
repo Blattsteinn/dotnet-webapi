@@ -1,4 +1,4 @@
-namespace FoodOrderingApi.Dtos.AddOn;
+namespace FoodOrderingApi.Dtos.Places;
 
 public record UpdateAddOn(
     string? Name,

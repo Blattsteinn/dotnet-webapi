@@ -1,4 +1,4 @@
-namespace FoodOrderingApi.Dtos.AddOnCategory;
+namespace FoodOrderingApi.Dtos.Places;
 
 public record UpdateAddOnCategory(
     string? Name,

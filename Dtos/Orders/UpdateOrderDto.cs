@@ -1,5 +1,5 @@
 
-namespace FoodOrderingApi.Dtos.Order;
+namespace FoodOrderingApi.Dtos.Orders;
 
 using FoodOrderingApi.Models.Orders;
 public record UpdateOrderDto(

@@ -1,4 +1,4 @@
-namespace FoodOrderingApi.Dtos.ProductCategory;
+namespace FoodOrderingApi.Dtos.Places;
 
 public record UpdateProductCategory(
     string? Name,

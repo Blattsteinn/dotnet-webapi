@@ -1,7 +1,7 @@
 
 using FoodOrderingApi.Models.Orders;
 using FoodOrderingApi.Services.Orders;
-using FoodOrderingApi.Dtos.OrderItem;
+using FoodOrderingApi.Dtos.Orders;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FoodOrderingApi.Controllers.Orders;

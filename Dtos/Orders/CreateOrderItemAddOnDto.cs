@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace FoodOrderingApi.Dtos.OrderItemAddOn;
+namespace FoodOrderingApi.Dtos.Orders;
 
 public record CreateOrderItemAddOnDto(
     int OrderItemId,

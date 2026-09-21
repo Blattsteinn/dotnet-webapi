@@ -3,7 +3,7 @@
 using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Services.Places;
 using Microsoft.AspNetCore.Mvc;
-using FoodOrderingApi.Dtos.Product;
+using FoodOrderingApi.Dtos.Places;
 
 namespace FoodOrderingApi.Controllers.Places;
 

@@ -1,6 +1,6 @@
 using FoodOrderingApi.Data;
 using FoodOrderingApi.Models.Places;
-using FoodOrderingApi.Dtos.Product;
+using FoodOrderingApi.Dtos.Places;
 
 using Microsoft.EntityFrameworkCore;
 

@@ -2,7 +2,7 @@
 using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Services.Places;
 using Microsoft.AspNetCore.Mvc;
-using FoodOrderingApi.Dtos.AddOnCategory;
+using FoodOrderingApi.Dtos.Places;
 
 namespace FoodOrderingApi.Controllers.Places;
 

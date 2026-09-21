@@ -1,7 +1,7 @@
 
 using FoodOrderingApi.Data;
 using FoodOrderingApi.Models.Places;
-using FoodOrderingApi.Dtos.AddOnCategory;
+using FoodOrderingApi.Dtos.Places;
 
 namespace FoodOrderingApi.Services.Places;
 
