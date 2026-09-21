@@ -15,4 +15,5 @@ public class AppDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<AddOnCategory> AddOnCategories => Set<AddOnCategory>();
     public DbSet<AddOn> AddOns => Set<AddOn>();
+    public DbSet<Order> Orders => Set<Order>();
 }

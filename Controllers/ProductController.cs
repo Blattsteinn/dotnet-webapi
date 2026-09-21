@@ -3,7 +3,6 @@
 using FoodOrderingApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using FoodOrderingApi.Dtos.Product;
-using FoodOrderingApi.DTOs;
 
 namespace FoodOrderingApi.Controllers;
 

@@ -1,0 +1,36 @@
+@FoodOrderingApi_HostAddress = http://localhost:5258
+@placeId = 1
+@orderId = 1
+
+# Get all orders
+GET {{FoodOrderingApi_HostAddress}}/api/v1/orders
+Accept: application/json
+
+###
+
+# Get an order by id
+GET {{FoodOrderingApi_HostAddress}}/api/v1/orders/{{orderId}}
+Accept: application/json
+
+###
+
+# Create an order
+POST {{FoodOrderingApi_HostAddress}}/api/v1/orders
+Content-Type: application/json
+
+{
+    "placeId": {{placeId}}
+}
+
+###
+
+# Update an order status
+# OrderStatus: 0 = Pending, 1 = Confirmed, 2 = Preparing, 3 = Ready, 4 = Completed, 5 = Cancelled
+PATCH {{FoodOrderingApi_HostAddress}}/api/v1/orders/{{orderId}}
+Content-Type: application/json
+
+{
+    "status": 2
+}
+
+###

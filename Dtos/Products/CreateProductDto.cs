@@ -1,6 +1,6 @@
 using FoodOrderingApi.Models;
 
-namespace FoodOrderingApi.DTOs;
+namespace FoodOrderingApi.Dtos.Product;
 
 public record CreateProductDto(
     int Id,
