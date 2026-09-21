@@ -1,0 +1,28 @@
+@FoodOrderingApi_HostAddress = http://localhost:5258
+@orderId = 1
+@orderItemId = 1
+@productId = 1
+
+# Get all order items of an order
+GET {{FoodOrderingApi_HostAddress}}/api/v1/orders/{{orderId}}/order-items
+Accept: application/json
+
+###
+
+# Get an order item by id
+GET {{FoodOrderingApi_HostAddress}}/api/v1/orders/{{orderId}}/order-items/{{orderItemId}}
+Accept: application/json
+
+###
+
+# Add an order item
+# name and price are snapshotted from the product server-side
+POST {{FoodOrderingApi_HostAddress}}/api/v1/orders/{{orderId}}/order-items
+Content-Type: application/json
+
+{
+    "productId": {{productId}},
+    "quantity": 2
+}
+
+###
