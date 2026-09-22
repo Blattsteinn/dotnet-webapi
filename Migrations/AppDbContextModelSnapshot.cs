@@ -26,7 +26,7 @@ namespace FoodOrderingApi.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("PlaceId")
+                    b.Property<int?>("PlaceId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Status")
@@ -55,7 +55,7 @@ namespace FoodOrderingApi.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("ProductId")
+                    b.Property<int?>("ProductId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Quantity")
@@ -76,7 +76,7 @@ namespace FoodOrderingApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("AddOnId")
+                    b.Property<int?>("AddOnId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
@@ -238,8 +238,7 @@ namespace FoodOrderingApi.Migrations
                     b.HasOne("FoodOrderingApi.Models.Places.Place", "Place")
                         .WithMany()
                         .HasForeignKey("PlaceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Place");
                 });
@@ -255,8 +254,7 @@ namespace FoodOrderingApi.Migrations
                     b.HasOne("FoodOrderingApi.Models.Places.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Order");
 
@@ -268,8 +266,7 @@ namespace FoodOrderingApi.Migrations
                     b.HasOne("FoodOrderingApi.Models.Places.AddOn", "AddOn")
                         .WithMany()
                         .HasForeignKey("AddOnId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("FoodOrderingApi.Models.Orders.OrderItem", "OrderItem")
                         .WithMany("OrderItemAddOns")

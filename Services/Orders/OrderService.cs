@@ -15,7 +15,6 @@ public class OrderService
         _db = db;
     }
 
-    // GET, GET ID, POST, PATCH -> USES UpdateOrderDto.cs
 
     public List<Order> GetAll()
     {
@@ -29,6 +28,10 @@ public class OrderService
 
     public Order? Add(Order order)
     {
+        // can be null so whatever uhh
+        if (order.PlaceId is not int placeId)
+            return null;
+
         Place? place = _db.Places.Find(order.PlaceId);
         if (place == null)
             return null;
@@ -48,7 +51,9 @@ public class OrderService
         if (order == null)
             return null;
 
-        order.Status = orderDto.Status;
+        if(orderDto.Status.HasValue)
+            order.Status = orderDto.Status.Value;
+        
 
         _db.SaveChanges();
 

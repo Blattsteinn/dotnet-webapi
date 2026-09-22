@@ -10,7 +10,7 @@ public class OrderItemAddOn
     public int OrderItemId { get; set; }
     public OrderItem? OrderItem { get; set; }
 
-    public int AddOnId { get; set; }
+    public int? AddOnId { get; set; }
     public AddOn? AddOn { get; set; }
     
     // snapshot values from AddOn ---------------

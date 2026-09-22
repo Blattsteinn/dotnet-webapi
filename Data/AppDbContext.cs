@@ -19,14 +19,25 @@ public class AppDbContext : DbContext
     public DbSet<Order> Orders => Set<Order>();
 
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
-    // We don't delete OrderItem on product's deletion.
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<OrderItem>()
             .HasOne(x => x.Product)
             .WithMany()
             .HasForeignKey(x => x.ProductId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<OrderItemAddOn>()
+            .HasOne(x => x.AddOn)
+            .WithMany()
+            .HasForeignKey(x => x.AddOnId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Order>()
+            .HasOne(x => x.Place)
+            .WithMany()
+            .HasForeignKey(x => x.PlaceId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 
     public DbSet<OrderItemAddOn> OrderItemAddOns => Set<OrderItemAddOn>();

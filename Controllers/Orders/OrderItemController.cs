@@ -31,7 +31,7 @@ public class OrderItemController : ControllerBase
     {
         OrderItem? orderItem = _orderItemService.Get(id, orderId);
         if (orderItem == null)
-            return NotFound();
+            return NotFound("Order does not exist.");
 
         return Ok(orderItem);
     }

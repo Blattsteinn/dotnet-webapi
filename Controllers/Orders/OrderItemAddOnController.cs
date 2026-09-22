@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace FoodOrderingApi.Controllers.Orders;
 
 [ApiController]
-[Route("api/v1/order-items/{OrderItemId}/add-ons")]
+[Route("api/v1/order-items/{orderItemId}/add-ons")]
 public class OrderItemAddOnController : ControllerBase
 {
     private readonly OrderItemAddOnService _orderItemAddOnService;
@@ -21,7 +21,7 @@ public class OrderItemAddOnController : ControllerBase
     {
         List<OrderItemAddOn>? orderItemAddOns = _orderItemAddOnService.GetAll(orderItemId);
         if(orderItemAddOns == null)
-            return NotFound();
+            return NotFound("OrderItem does not exist.");
 
         return Ok(orderItemAddOns);
 
@@ -32,7 +32,7 @@ public class OrderItemAddOnController : ControllerBase
     {
         OrderItemAddOn? orderItemAddOn = _orderItemAddOnService.Get(id, orderItemId);
         if(orderItemAddOn == null)
-            return NotFound();
+            return NotFound("OrderItem does not exist.");
 
         return Ok(orderItemAddOn);
     }
@@ -41,10 +41,13 @@ public class OrderItemAddOnController : ControllerBase
     [HttpPost]
     public IActionResult Add(CreateOrderItemAddOnDto createOrderItemAddOnDto, int orderItemId)
     {
-        var newOrderItem = _orderItemAddOnService.Add(createOrderItemAddOnDto, orderItemId);
+        var (result, newOrderItem) = _orderItemAddOnService.Add(createOrderItemAddOnDto, orderItemId);
 
-        if(newOrderItem == null)
-            return BadRequest();
+        if(result == AddOrderItemAddOnResult.AddOnNotFound)
+            return NotFound("Add on does not exist.");
+
+        if(result == AddOrderItemAddOnResult.OrderItemNotFound)
+            return NotFound("Order item does not exist.");
         
         return Ok(newOrderItem);
     }

@@ -27,9 +27,6 @@ public class PlaceService
         if (place == null)
             return null;
 
-        if (place == null)
-            return null;
-
         return place;
     }
     

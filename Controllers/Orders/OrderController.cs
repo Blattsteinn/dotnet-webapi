@@ -28,7 +28,7 @@ public class OrderController : ControllerBase
     {
         Order? order = _orderService.Get(id);
         if (order == null)
-            return NotFound();
+            return NotFound("Order does not exist.");
 
         return Ok(order);
     }
@@ -48,7 +48,7 @@ public class OrderController : ControllerBase
     {
         Order? updatedOrder = _orderService.Update(id, order);
         if (updatedOrder == null)
-            return NotFound();
+            return NotFound("Order does not exist.");
 
         return Ok(updatedOrder);
     }

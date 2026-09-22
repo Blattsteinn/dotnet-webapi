@@ -8,6 +8,13 @@ using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Dtos.Orders;
 namespace FoodOrderingApi.Services.Orders;
 
+public enum AddOrderItemAddOnResult
+{
+    Success,
+    OrderItemNotFound,
+    AddOnNotFound
+}
+
 public class OrderItemAddOnService
 {
     private readonly AppDbContext _db;
@@ -18,8 +25,8 @@ public class OrderItemAddOnService
 
     public List<OrderItemAddOn>? GetAll(int orderItemId)
     {
-        bool addOnExists = _db.OrderItems.Any(oi => oi.Id == orderItemId);
-        if (!addOnExists)
+        bool orderItemExists = _db.OrderItems.Any(oi => oi.Id == orderItemId);
+        if (!orderItemExists)
             return null;
 
         return _db.OrderItemAddOns
@@ -37,16 +44,17 @@ public class OrderItemAddOnService
         return orderItemAddOn;
     }
 
-    public OrderItemAddOn? Add(CreateOrderItemAddOnDto createOrderItemAddOnDto, int orderItemId)
+    // Method doesn't really matter Order will make sure that this is created.
+    public (AddOrderItemAddOnResult, OrderItemAddOn?) Add(CreateOrderItemAddOnDto createOrderItemAddOnDto, int orderItemId)
     {
         AddOn? addOn = _db.AddOns.Find(createOrderItemAddOnDto.AddOnId);
         OrderItem? orderItem = _db.OrderItems.Find(orderItemId);
 
         if(addOn == null)
-            return null;
+            return (AddOrderItemAddOnResult.AddOnNotFound, null);
         
         if(orderItem == null)
-            return null;
+            return (AddOrderItemAddOnResult.OrderItemNotFound, null);
 
         OrderItemAddOn orderItemAddOn = new OrderItemAddOn
         {
@@ -60,6 +68,6 @@ public class OrderItemAddOnService
         _db.OrderItemAddOns.Add(orderItemAddOn);
         _db.SaveChanges();
 
-        return orderItemAddOn;
+        return (AddOrderItemAddOnResult.Success, orderItemAddOn);
     }
 }

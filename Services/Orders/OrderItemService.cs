@@ -45,8 +45,10 @@ public class OrderItemService
         return orderItem;
     }
 
+
+    // Method doesn't really matter Order will make sure that this is
     public (AddOrderItemResult Result, OrderItem? OrderItem) Add(CreateOrderItemDto orderItemDto, int orderId)
-    {
+    {   
         Order? order = _db.Orders.Find(orderId);
         if (order == null)
             return (AddOrderItemResult.OrderNotFound, null);

@@ -30,7 +30,7 @@ PATCH {{FoodOrderingApi_HostAddress}}/api/v1/orders/{{orderId}}
 Content-Type: application/json
 
 {
-    "status": 3
+    "status": 4
 }
 
 ###
