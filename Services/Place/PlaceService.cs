@@ -20,14 +20,38 @@ public class PlaceService
         return _db.Places.ToList();
     }
 
-    public Place? Get(int id)
+    public PlaceDetailDto? Get(int id)
     {
-        Place? place = _db.Places.Find(id);
+        var place = _db.Places
+            .Include(p => p.ProductCategories)
+            .ThenInclude(p => p.Products)
+            .FirstOrDefault(p => p.Id == id);
 
         if (place == null)
             return null;
 
-        return place;
+    // Filter the hidden as well;
+    return new PlaceDetailDto(
+        place.Id,
+        place.Latitude,
+        place.Longtitude,
+        place.Name,
+        place.Description,
+        place.ProductCategories.Select(pc => new ProductCategoriesDetailDto(
+            pc.Id,
+            pc.Name,
+            pc.Hidden,
+            pc.Products.Select(p => new ProductSummaryDto(
+                p.Id,
+                p.Name,
+                p.Hidden,
+                p.Description,
+                p.Price
+            )).ToList()
+        )).ToList()
+    );
+
+        // return place;
     }
     
     public Place Add(Place place)

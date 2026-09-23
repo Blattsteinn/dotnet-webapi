@@ -30,7 +30,7 @@ public class ProductController : ControllerBase
     [HttpGet("{id}")]
     public IActionResult Get(int id, int productCategoryId)
     {
-        Product? product = _productService.Get(id, productCategoryId);
+        ProductDetailDto? product = _productService.Get(id, productCategoryId);
         if(product == null)
             return NotFound();
 

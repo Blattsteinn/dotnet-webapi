@@ -1,6 +1,6 @@
 @FoodOrderingApi_HostAddress = http://localhost:5258
-@productCategoryId = 2
-@productId = 4
+@productCategoryId = 1
+@productId = 1
 
 # Get all products of a product category
 GET {{FoodOrderingApi_HostAddress}}/api/v1/product-categories/{{productCategoryId}}/products

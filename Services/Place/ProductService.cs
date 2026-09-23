@@ -27,14 +27,38 @@ public class ProductService
         return products;
     }
 
-    public Product? Get(int id, int productCategoryId)
+    public ProductDetailDto? Get(int id, int productCategoryId)
     {
-        Product? product = _db.Products.Find(id);
+        Product? product = _db.Products
+            .Include(p => p.AddOnCategories)
+            .ThenInclude(aoc => aoc.AddOns)
+            .FirstOrDefault(p => p.Id == id && p.ProductCategoryId == productCategoryId);
 
         if(product == null || product.ProductCategoryId != productCategoryId)
             return null;
 
-        return product;
+        ProductDetailDto productForReturn = new ProductDetailDto(
+            product.Id,
+            product.Name,
+            product.Description,
+            product.Price,
+            product.Hidden,
+            product.AddOnCategories.Select(aoc => new AddOnCategoriesDetailDto(
+                aoc.Id,
+                aoc.Name,
+                aoc.Required,
+                aoc.Multichoice,
+                aoc.AddOns.Select(ao => new AddOnDetailDto(
+                    ao.Id,
+                    ao.Name,
+                    ao.Price,
+                    ao.Hidden
+                )).ToList()
+            )).ToList()
+        );
+
+
+        return productForReturn;
     }
 
     public Product? Add(Product product, int productCategoryId)
@@ -76,8 +100,8 @@ public class ProductService
 
     public bool Delete(int id, int productCategoryId)
     {
-        Product? product = Get(id, productCategoryId);
-        if(product == null)
+        Product? product = _db.Products.Find(id);
+        if(product == null || product.ProductCategoryId != productCategoryId)
             return false;
 
         _db.Products.Remove(product);
