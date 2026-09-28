@@ -1,5 +1,3 @@
-
-
 using FoodOrderingApi.Data;
 
 using FoodOrderingApi.Models.Orders;
@@ -28,12 +26,13 @@ public class OrderService
         _db = db;
     }
 
+    // Does not expect a full list.
     public List<Order> GetAll()
     {
         return _db.Orders.ToList();
     }
 
-    public OrderDto? Get(int id)
+    public GetOrderDto? Get(int id)
     {   
         Order? order = _db.Orders
             .Include(o => o.OrderItems)
@@ -46,7 +45,7 @@ public class OrderService
         return OrderDtoMapper.MapToDto(order);
     }
 
-    public (OrderDto?, AddOrderResult) Add(CreateOrderDto orderDto)
+    public (GetOrderDto?, AddOrderResult) Add(CreateOrderDto orderDto)
     {   
 
         /// CLIENT SENDS: CreateOrderDto

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using FoodOrderingApi.Dtos.Orders;
 
+namespace FoodOrderingApi.Dtos.Orders;
 public record CreateOrderDto(
     int PlaceId,
     List<CreateOrderItemDto> OrderItems

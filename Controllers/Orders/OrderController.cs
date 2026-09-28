@@ -16,6 +16,7 @@ public class OrderController : ControllerBase
         _orderService = orderService;
     }
 
+    // Doesn't nest on purpose.
     [HttpGet]
     public IActionResult GetAll()
     {
@@ -26,7 +27,7 @@ public class OrderController : ControllerBase
     [HttpGet("{id}")]
     public IActionResult Get(int id)
     {
-        OrderDto? order = _orderService.Get(id);
+        GetOrderDto? order = _orderService.Get(id);
         if (order == null)
             return NotFound("Order does not exist.");
 
@@ -36,7 +37,7 @@ public class OrderController : ControllerBase
     [HttpPost]
     public IActionResult Add(CreateOrderDto createOrderDto)
     {
-        (OrderDto? newOrder, AddOrderResult result) = _orderService.Add(createOrderDto);
+        (GetOrderDto? newOrder, AddOrderResult result) = _orderService.Add(createOrderDto);
 
         return result switch
         {

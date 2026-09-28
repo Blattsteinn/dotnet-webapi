@@ -2,22 +2,22 @@
 using FoodOrderingApi.Models.Orders;
 
 namespace FoodOrderingApi.Dtos.Orders;
-public record OrderDto(
+public record GetOrderDto(
     int? PlaceId,
     OrderStatus Status,
     DateTime CreatedAt,
-    List<OrderItemDto> OrderItems
+    List<GetOrderItemDto> OrderItems
 );
 
-public record OrderItemDto(
+public record GetOrderItemDto(
     int? ProductId,
     string Name,
     decimal Price,
     int Quantity,
-    List<OrderItemAddOnDto> OrderItemAddOns
+    List<GetOrderItemAddOnDto> OrderItemAddOns
 );
 
-public record  OrderItemAddOnDto(
+public record  GetOrderItemAddOnDto(
     int? AddOnId,
     string Name,
     decimal Price,

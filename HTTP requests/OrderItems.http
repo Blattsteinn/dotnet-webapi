@@ -14,15 +14,3 @@ GET {{FoodOrderingApi_HostAddress}}/api/v1/orders/{{orderId}}/order-items/{{orde
 Accept: application/json
 
 ###
-
-# Add an order item
-# name and price are snapshotted from the product server-side
-POST {{FoodOrderingApi_HostAddress}}/api/v1/orders/{{orderId}}/order-items
-Content-Type: application/json
-
-{
-    "productId": {{productId}},
-    "quantity": 2
-}
-
-###

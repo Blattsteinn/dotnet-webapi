@@ -1,7 +1,6 @@
 
 using FoodOrderingApi.Models.Orders;
 using FoodOrderingApi.Services.Orders;
-using FoodOrderingApi.Dtos.Orders;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FoodOrderingApi.Controllers.Orders;
@@ -15,6 +14,10 @@ public class OrderItemController : ControllerBase
     {
         _orderItemService = orderItemService;
     }
+
+    // Only has GET requests. I don't see the point in others. 
+    // I assume we could add PATCH if there's a need later.
+    // Order handles all the nesting anyway, keeping for debugging purposes.
 
     [HttpGet]
     public IActionResult GetAll(int orderId)
@@ -36,17 +39,4 @@ public class OrderItemController : ControllerBase
         return Ok(orderItem);
     }
 
-    [HttpPost]
-    public IActionResult Add(int orderId, CreateOrderItemDto orderItem)
-    {
-        var (result, newOrderItem) = _orderItemService.Add(orderItem, orderId);
-
-        if (result == AddOrderItemResult.OrderNotFound)
-            return NotFound("Order does not exist.");
-
-        if (result == AddOrderItemResult.ProductNotFound)
-            return BadRequest("Product does not exist.");
-
-        return Ok(newOrderItem);
-    }
 }
