@@ -17,6 +17,9 @@ public class AddOnController : ControllerBase
         _addOnService = addOnService;
     }
 
+    // Won't be using these much. 
+    // Product GET includes this table.
+
     [HttpGet]
     public IActionResult GetAll(int addOnCategoryId)
     {   

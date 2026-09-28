@@ -15,6 +15,9 @@ public class ProductCategoryController : ControllerBase
         _productCategoryService = productCategoryService;
     }
 
+    // Won't be using these much. 
+    // Place GET includes categories
+
     [HttpGet]
     public IActionResult GetAll(int placeId)
     {
@@ -30,7 +33,7 @@ public class ProductCategoryController : ControllerBase
     {
         ProductCategory? productCategory = _productCategoryService.Get(id, placeId);
         if (productCategory == null)
-            return NotFound();
+            return NotFound("Product category not found.");
 
         return Ok(productCategory);
     }
@@ -51,7 +54,7 @@ public class ProductCategoryController : ControllerBase
     {
         ProductCategory? updatedProductCategory = _productCategoryService.Update(id, placeId, productCategory);
         if(updatedProductCategory == null)
-            return NotFound();
+            return NotFound("Product category not found.");
 
         return Ok(updatedProductCategory);
     }
@@ -61,7 +64,7 @@ public class ProductCategoryController : ControllerBase
     {   
         bool exists = _productCategoryService.Delete(id, placeId);
         if (!exists)
-            return NotFound();
+            return NotFound("Product category not found.");
 
         return NoContent();
     }

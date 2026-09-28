@@ -32,7 +32,7 @@ public class ProductController : ControllerBase
     {
         ProductDetailDto? product = _productService.Get(id, productCategoryId);
         if(product == null)
-            return NotFound();
+            return NotFound("Product does not exist.");
 
         return Ok(product);
     }
@@ -44,7 +44,7 @@ public class ProductController : ControllerBase
         var newProduct = _productService.Add(product, productCategoryId);
 
         if(newProduct == null)
-            return NotFound("Product category does not exist.");
+            return NotFound("Product does not exist.");
 
         return Ok(new CreateProductDto(
             newProduct.Id,
@@ -60,7 +60,7 @@ public class ProductController : ControllerBase
     {
         Product? product = _productService.Update(id, productCategoryId, updateProduct);
         if(product == null)
-            return NotFound();
+            return NotFound("Product does not exist.");
 
         return Ok(product);  
     }
@@ -70,7 +70,7 @@ public class ProductController : ControllerBase
     {
         bool exists = _productService.Delete(id, productCategoryId);
         if (!exists)
-            return NotFound();
+            return NotFound("Product does not exist.");
 
         return NoContent();
     }
