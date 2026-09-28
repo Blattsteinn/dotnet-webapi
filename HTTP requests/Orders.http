@@ -1,6 +1,6 @@
 @FoodOrderingApi_HostAddress = http://localhost:5258
 @placeId = 1
-@orderId = 1
+@orderId = 4257
 
 # Get all orders
 GET {{FoodOrderingApi_HostAddress}}/api/v1/orders
@@ -19,7 +19,24 @@ POST {{FoodOrderingApi_HostAddress}}/api/v1/orders
 Content-Type: application/json
 
 {
-    "placeId": {{placeId}}
+    "placeId": {{placeId}},
+    "orderItems": [
+        {
+            "productId": 1,
+            "quantity": 5,
+            "addOns": [
+                {
+                    "addOnId": 2,
+                    "quantity": 5
+                },
+                {
+                    "addOnId": 3,
+                    "quantity": 1
+                }
+            ]
+        }
+    ]
+
 }
 
 ###

@@ -26,7 +26,7 @@ public class OrderController : ControllerBase
     [HttpGet("{id}")]
     public IActionResult Get(int id)
     {
-        Order? order = _orderService.Get(id);
+        OrderDto? order = _orderService.Get(id);
         if (order == null)
             return NotFound("Order does not exist.");
 
@@ -34,13 +34,21 @@ public class OrderController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult Add(Order order)
+    public IActionResult Add(CreateOrderDto createOrderDto)
     {
-        Order? newOrder = _orderService.Add(order);
-        if (newOrder == null)
-            return NotFound("Place does not exist.");
+        (OrderDto? newOrder, AddOrderResult result) = _orderService.Add(createOrderDto);
 
-        return Ok(newOrder);
+        return result switch
+        {
+            AddOrderResult.PlaceNotFound => NotFound("Specified place does not exist."),
+            AddOrderResult.ZeroProducts => NotFound("Your request didn't specify any produts."),
+            AddOrderResult.ProductNotFound => NotFound("Request specified product ID/s that do not exist."),
+            AddOrderResult.AddOnNotFound => NotFound("Request specified add on ID/s that do not exist."),
+            AddOrderResult.Success => Ok(newOrder),
+             _ => NotFound("Unknown error.")
+        };
+
+
     }
 
     [HttpPatch("{id}")]
