@@ -1,0 +1,93 @@
+@host = http://localhost:5258
+@placeId = 1
+
+### Get all places (admin)
+GET {{host}}/api/v1/admin/places
+Accept: application/json
+
+### Get place by id (admin, fully nested, hidden included)
+GET {{host}}/api/v1/admin/places/{{placeId}}
+Accept: application/json
+
+
+### PATCH place — valid (this one should return 200)
+PATCH {{host}}/api/v1/admin/places/{{placeId}}
+Content-Type: application/json
+
+{
+  "name": "Pizza Palace v1",
+  "latitude": 0.7128,
+  "longtitude": -74.0060,
+  "description": "Updated description",
+  "productCategories": [
+    {
+      "id": 1,
+      "name": "Pizzas",
+      "description": null,
+      "hidden": false,
+      "products": [
+        {
+          "id": 1,
+          "name": "Margherita",
+          "description": "Tomato and cheese",
+          "hidden": false,
+          "price": 9.99,
+          "addOnCategories": [
+            {
+              "id": 1,
+              "name": "Extra Toppings",
+              "required": false,
+              "multichoice": true,
+              "addOns": [
+                { "id": 2, "name": "Mushrooms", "price": 1.0, "hidden": false },
+                { "id": 3, "name": "Olives", "price": 0.75, "hidden": false }
+              ]
+            },
+            {
+              "id": 2,
+              "name": "Crust Type",
+              "required": true,
+              "multichoice": false,
+              "addOns": [
+                { "id": 4, "name": "Regular", "price": 0.0, "hidden": false },
+                { "id": 5, "name": "Thin", "price": 1.0, "hidden": false },
+                { "id": 6, "name": "Thick", "price": 1.5, "hidden": false }
+              ]
+            }
+          ]
+        },
+        { "id": 2, "name": "Pepperoni", "description": "Pepperoni and cheese", "hidden": false, "price": 11.99, "addOnCategories": [] },
+        { "id": 3, "name": "Vegetarian", "description": "Veggies and cheese", "hidden": false, "price": 10.99, "addOnCategories": [] }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Drinks",
+      "description": null,
+      "hidden": false,
+      "products": [
+        { "id": 4, "name": "Coke", "description": "Coca-Cola", "hidden": false, "price": 2.0, "addOnCategories": [] },
+        { "id": 5, "name": "Water", "description": "Bottled water", "hidden": false, "price": 1.5, "addOnCategories": [] },
+        { "id": 9, "name": "Pizza", "description": "A delicious pizza", "hidden": true, "price": 12.99, "addOnCategories": [] }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Sides",
+      "description": null,
+      "hidden": false,
+      "products": [
+        { "id": 6, "name": "Fries", "description": "French fries", "hidden": false, "price": 3.0, "addOnCategories": [] },
+        { "id": 7, "name": "Garlic Bread", "description": "Toasted bread with garlic", "hidden": false, "price": 4.0, "addOnCategories": [] },
+        { "id": 10, "name": "TmpProd", "description": null, "hidden": false, "price": 3.5, "addOnCategories": [] }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Patched Burgeeers",
+      "description": "Burgers of the cool variety",
+      "hidden": true,
+      "products": []
+    }
+  ]
+}

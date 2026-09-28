@@ -9,6 +9,7 @@ public class AddOnCategory
     public List<AddOn> AddOns { get; set; } = [];
 
     [Required]
+    [MaxLength(200)]
     public required string Name { get; set; }
     public bool Required { get; set; } = false;
 

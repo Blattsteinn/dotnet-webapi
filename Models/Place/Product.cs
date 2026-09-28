@@ -12,9 +12,10 @@ public class Product
     public List<AddOnCategory> AddOnCategories { get; set; } = [];
 
     [Required]
+    [MaxLength(200)]
     public required string Name { get; set; }
 
-    [MaxLength(120)]
+    [MaxLength(250)]
     public string? Description { get; set; }
 
     public bool Hidden { get; set; } = true;

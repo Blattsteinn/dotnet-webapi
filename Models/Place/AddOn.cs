@@ -11,9 +11,10 @@ public class AddOn
     
 
     [Required]
+    [MaxLength(200)]
     public required string Name { get; set; }
 
-    [Range(0, 10000)]
+    [Range(typeof(decimal), "0.00", "10000")]
     public decimal Price { get; set; }
 
     public bool Hidden { get; set; } = true;

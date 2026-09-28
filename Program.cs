@@ -3,6 +3,7 @@ using FoodOrderingApi.Data;
 using FoodOrderingApi.Services.Orders;
 using FoodOrderingApi.Services.Places;
 using System.Text.Json.Serialization;
+using FoodOrderingApi.Services.Admin;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +27,8 @@ builder.Services.AddScoped<AddOnService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<OrderItemService>();
 builder.Services.AddScoped<OrderItemAddOnService>();
+
+builder.Services.AddScoped<AdminService>();
 
 // JSON cycle ignoring
 builder.Services.AddControllers()
