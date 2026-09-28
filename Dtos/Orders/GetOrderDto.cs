@@ -3,6 +3,7 @@ using FoodOrderingApi.Models.Orders;
 
 namespace FoodOrderingApi.Dtos.Orders;
 public record GetOrderDto(
+    int Id,
     int? PlaceId,
     OrderStatus Status,
     DateTime CreatedAt,
@@ -10,6 +11,7 @@ public record GetOrderDto(
 );
 
 public record GetOrderItemDto(
+    int Id,
     int? ProductId,
     string Name,
     decimal Price,
@@ -18,6 +20,7 @@ public record GetOrderItemDto(
 );
 
 public record  GetOrderItemAddOnDto(
+    int Id,
     int? AddOnId,
     string Name,
     decimal Price,
