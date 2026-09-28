@@ -119,9 +119,13 @@ public class OrderService
   
     }
 
-    public Order? Update(int id, UpdateOrderDto orderDto)
+    public GetOrderDto? Update(int id, UpdateOrderDto orderDto)
     {
-        Order? order = _db.Orders.Find(id);
+        Order? order = _db.Orders
+             .Include(o => o.OrderItems)
+             .ThenInclude(oi => oi.OrderItemAddOns)
+             .FirstOrDefault(o => o.Id  == id);
+
         if (order == null)
             return null;
 
@@ -131,7 +135,7 @@ public class OrderService
 
         _db.SaveChanges();
 
-        return order;
+        return OrderDtoMapper.MapToDto(order);
     }
 
 }

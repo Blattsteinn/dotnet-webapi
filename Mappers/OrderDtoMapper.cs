@@ -10,18 +10,18 @@ public static class OrderDtoMapper
             // .Include(o => o.OrderItems)
             // .ThenInclude(oi => oi.OrderItemAddOns)
             // .FirstOrDefault(o => o.Id  == id);
-   public static OrderDto MapToDto(Order order)
+   public static GetOrderDto MapToDto(Order order)
     {
-        return new OrderDto(
+        return new GetOrderDto(
             PlaceId:   order.PlaceId,
             Status:    order.Status,
             CreatedAt: order.CreatedAt,
-            OrderItems: order.OrderItems.Select(item => new OrderItemDto(
+            OrderItems: order.OrderItems.Select(item => new GetOrderItemDto(
                 ProductId: item.ProductId,
                 Name:      item.Name,
                 Price:     item.Price,
                 Quantity:  item.Quantity,
-                OrderItemAddOns: item.OrderItemAddOns.Select(addOn => new OrderItemAddOnDto(
+                OrderItemAddOns: item.OrderItemAddOns.Select(addOn => new GetOrderItemAddOnDto(
                     AddOnId:  addOn.AddOnId,
                     Name:     addOn.Name,
                     Price:    addOn.Price,

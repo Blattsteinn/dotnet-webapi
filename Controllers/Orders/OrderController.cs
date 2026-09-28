@@ -42,20 +42,19 @@ public class OrderController : ControllerBase
         return result switch
         {
             AddOrderResult.PlaceNotFound => NotFound("Specified place does not exist."),
-            AddOrderResult.ZeroProducts => NotFound("Your request didn't specify any produts."),
+            AddOrderResult.ZeroProducts => BadRequest("Your request didn't specify any produts."),
             AddOrderResult.ProductNotFound => NotFound("Request specified product ID/s that do not exist."),
             AddOrderResult.AddOnNotFound => NotFound("Request specified add on ID/s that do not exist."),
             AddOrderResult.Success => Ok(newOrder),
-             _ => NotFound("Unknown error.")
+             _ =>  StatusCode(500)
         };
-
-
     }
 
     [HttpPatch("{id}")]
     public IActionResult Update(int id, UpdateOrderDto order)
     {
-        Order? updatedOrder = _orderService.Update(id, order);
+        GetOrderDto? updatedOrder = _orderService.Update(id, order);
+        
         if (updatedOrder == null)
             return NotFound("Order does not exist.");
 
