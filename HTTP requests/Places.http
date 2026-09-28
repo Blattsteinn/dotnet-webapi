@@ -31,7 +31,7 @@ PATCH {{FoodOrderingApi_HostAddress}}/api/v1/places/{{placeId}}
 Content-Type: application/json
 
 {
-    "latitude": 590.44,
+    "latitude": 590.4774,
     "longtitude": 590.44
 }
 

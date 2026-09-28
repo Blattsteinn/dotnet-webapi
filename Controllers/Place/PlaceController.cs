@@ -17,6 +17,7 @@ public class PlaceController : ControllerBase
     }
 
 
+    // Not nested on purpose.
     [HttpGet]
     public IActionResult GetAll()
     {
@@ -24,18 +25,20 @@ public class PlaceController : ControllerBase
         return Ok(places);
     }
     
+    // Returns Place + ProductCategories + Product
     [HttpGet("{id}")]
     public IActionResult Get(int id)
     {
-        var place = _placeService.Get(id);
+        GetPlaceDto? place = _placeService.Get(id);
         if (place == null)
         {
-            return NotFound();
+            return NotFound("Place does not exist.");
         }
 
         return Ok(place);
     }
 
+    // Not nested on purpose. 
     [HttpPost]
     public IActionResult Add(Place place)
     {
@@ -43,10 +46,11 @@ public class PlaceController : ControllerBase
         return Ok(newPlace);
     }
 
+    // Returns Place + ProductCategories + Product
     [HttpPatch("{id}")]
     public IActionResult Update(int id, UpdatePlaceDto place)
     {
-        var updatedProduct = _placeService.Update(id, place);
+        GetPlaceDto? updatedProduct = _placeService.Update(id, place);
         if(updatedProduct == null)
             return NotFound();
 

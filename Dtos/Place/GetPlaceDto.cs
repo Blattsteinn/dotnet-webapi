@@ -2,8 +2,13 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace FoodOrderingApi.Dtos.Places;
 
+// Join tables before using:
+        // var place = _db.Places
+            // .Include(p => p.ProductCategories)
+            // .ThenInclude(p => p.Products)
+            // .FirstOrDefault(p => p.Id == id);
 
-public record PlaceDetailDto(
+public record GetPlaceDto(
     int Id,
     double Latitude,
     double Longtitude,

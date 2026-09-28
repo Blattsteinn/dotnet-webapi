@@ -4,6 +4,7 @@ using FoodOrderingApi.Data;
 using FoodOrderingApi.Models.Places;
 
 using FoodOrderingApi.Dtos.Places;
+using FoodOrderingApi.Mappers;
 
 namespace FoodOrderingApi.Services.Places;
 
@@ -20,7 +21,7 @@ public class PlaceService
         return _db.Places.ToList();
     }
 
-    public PlaceDetailDto? Get(int id)
+    public GetPlaceDto? Get(int id)
     {
         var place = _db.Places
             .Include(p => p.ProductCategories)
@@ -30,28 +31,9 @@ public class PlaceService
         if (place == null)
             return null;
 
-    // Filter the hidden as well;
-    return new PlaceDetailDto(
-        place.Id,
-        place.Latitude,
-        place.Longtitude,
-        place.Name,
-        place.Description,
-        place.ProductCategories.Select(pc => new ProductCategoriesDetailDto(
-            pc.Id,
-            pc.Name,
-            pc.Hidden,
-            pc.Products.Select(p => new ProductSummaryDto(
-                p.Id,
-                p.Name,
-                p.Hidden,
-                p.Description,
-                p.Price
-            )).ToList()
-        )).ToList()
-    );
+        // Filter the hidden as well;
+        return PlaceDtoMapper.MapToGetDto(place);
 
-        // return place;
     }
     
     public Place Add(Place place)
@@ -61,9 +43,13 @@ public class PlaceService
 
         return place;
     }
-    public Place? Update(int id, UpdatePlaceDto placeDto)
+    public GetPlaceDto? Update(int id, UpdatePlaceDto placeDto)
     {
-        Place? place = _db.Places.Find(id);
+        Place? place = _db.Places
+            .Include(p => p.ProductCategories)
+            .ThenInclude(p => p.Products)
+            .FirstOrDefault(p => p.Id == id);
+        
         if (place == null)
             return null;
         
@@ -80,8 +66,8 @@ public class PlaceService
             place.Description = placeDto.Description;
 
         _db.SaveChanges();
-
-        return place;
+        
+        return PlaceDtoMapper.MapToGetDto(place);
     }
     
     public bool Delete(int id)
