@@ -1,5 +1,5 @@
 @host = http://localhost:5258
-@placeId =7783
+@placeId =7786
 
 ### Get all places (admin)
 GET {{host}}/api/v1/admin/places
@@ -30,10 +30,8 @@ Content-Type: application/json
   ]
 }
 
-
-###
-
-POST {{host}}/api/v1/places
+### POST
+POST {{host}}/api/v1/admin/places
 Content-Type: application/json
 
 {
@@ -42,3 +40,7 @@ Content-Type: application/json
     "name": "Unique shooper",
     "description": "Oooga booga"
 }
+
+### Delete a place
+DELETE {{host}}/api/v1/admin/places/{{placeId}}
+Accept: application/json

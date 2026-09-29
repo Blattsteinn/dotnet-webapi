@@ -38,32 +38,4 @@ public class PlaceController : ControllerBase
         return Ok(place);
     }
 
-    // Not nested on purpose. 
-    [HttpPost]
-    public IActionResult Add(Place place)
-    {
-        Place newPlace = _placeService.Add(place);
-        return Ok(newPlace);
-    }
-
-    // Returns Place + ProductCategories + Product
-    [HttpPatch("{id}")]
-    public IActionResult Update(int id, UpdatePlaceDto place)
-    {
-        GetPlaceDto? updatedProduct = _placeService.Update(id, place);
-        if(updatedProduct == null)
-            return NotFound();
-
-        return Ok(updatedProduct);
-    }
-
-    [HttpDelete("{id}")]
-    public IActionResult Delete(int id)
-    {
-        bool exists = _placeService.Delete(id);
-        if(!exists)
-            return NotFound();
-
-        return NoContent();
-    }
 }

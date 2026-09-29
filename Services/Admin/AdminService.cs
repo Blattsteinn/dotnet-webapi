@@ -28,7 +28,7 @@ public class AdminService
     }
 
     // Not nested. Admin sees all places, hidden or not.
-    public List<Place> GetAllPlaces(int ownerId)
+    public List<Place> GetAllPlaces()
     {
         List<Place> places = _db.Places.ToList();
         return places;
@@ -87,13 +87,17 @@ public class AdminService
         return (AdminUpdatePlaceResult.Success, PlaceDtoMapper.MapToGetDto(reloaded));
     }
 
-    // Returns false if the place does not exist.
     public bool Delete(int id)
     {
-        throw new NotImplementedException();
+        Place? place = _db.Places.Find(id);
+        if (place == null)
+            return false;
+        
+        _db.Places.Remove(place);
+        _db.SaveChanges();
+        return true;
+
     }
-
-
 
 
     // SUTVARKYTI (KITAM FAILE IG?)

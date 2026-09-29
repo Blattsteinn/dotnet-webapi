@@ -8,6 +8,8 @@ using FoodOrderingApi.Dtos.Admin;
 
 namespace FoodOrderingApi.Controllers.Admin;
 
+// WHEN AUTH IS A THING PLACE MUST BE UNDER AN OWNER HERE:
+
 [ApiController]
 [Route("api/v1/admin")]
 public class AdminController : ControllerBase
@@ -21,8 +23,7 @@ public class AdminController : ControllerBase
     [HttpGet("places")]
     public IActionResult GetAll()
     {
-        int ownerId = 77;
-        List<Place> places = _adminService.GetAllPlaces(ownerId);
+        List<Place> places = _adminService.GetAllPlaces();
         return Ok(places);
     }
 
@@ -57,9 +58,14 @@ public class AdminController : ControllerBase
         };
     }
     
+
     [HttpDelete("places/{id}")]
     public IActionResult Delete(int id)
     {
-        return Ok();
+        bool exists = _adminService.Delete(id);
+        if(!exists)
+            return NotFound();
+
+        return NoContent();
     }
 }

@@ -25,61 +25,14 @@ public class PlaceService
     {   
         // Filter the hidden as well;
         var place = _db.Places
-            .Include(p => p.ProductCategories)
-            .ThenInclude(p => p.Products)
+            .Include(p => p.ProductCategories.Where(pc => !pc.Hidden))
+            .ThenInclude(pc => pc.Products.Where(pr => !pr.Hidden))
             .FirstOrDefault(p => p.Id == id);
 
         if (place == null)
             return null;
 
-        
-        return PlaceDtoMapper.MapToGetDto(place);
-
-    }
-    
-    public Place Add(Place place)
-    {
-        _db.Places.Add(place);
-        _db.SaveChanges();
-
-        return place;
-    }
-    public GetPlaceDto? Update(int id, UpdatePlaceDto placeDto)
-    {
-        Place? place = _db.Places
-            .Include(p => p.ProductCategories)
-            .ThenInclude(p => p.Products)
-            .FirstOrDefault(p => p.Id == id);
-        
-        if (place == null)
-            return null;
-        
-        if (placeDto.Latitude.HasValue)
-            place.Latitude = placeDto.Latitude.Value;
-
-        if (placeDto.Longtitude.HasValue)
-            place.Longtitude = placeDto.Longtitude.Value;
-
-        if (placeDto.Name != null)
-            place.Name = placeDto.Name;
-
-        if (placeDto.Description != null)
-            place.Description = placeDto.Description;
-
-        _db.SaveChanges();
-        
         return PlaceDtoMapper.MapToGetDto(place);
     }
     
-    public bool Delete(int id)
-    {
-        Place? place = _db.Places.Find(id);
-        if (place == null)
-            return false;
-        
-        _db.Places.Remove(place);
-        _db.SaveChanges();
-        return true;
-
-    }
 }

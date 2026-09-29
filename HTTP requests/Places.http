@@ -10,33 +10,3 @@ Accept: application/json
 # Get a place by id
 GET {{FoodOrderingApi_HostAddress}}/api/v1/places/{{placeId}}
 Accept: application/json
-
-###
-
-# Create a place
-POST {{FoodOrderingApi_HostAddress}}/api/v1/places
-Content-Type: application/json
-
-{
-    "latitude": 50.44,
-    "longtitude": 50.44,
-    "name": "Breeze",
-    "description": "Oooga booga"
-}
-
-###
-
-# Update a place
-PATCH {{FoodOrderingApi_HostAddress}}/api/v1/places/{{placeId}}
-Content-Type: application/json
-
-{
-    "latitude": 590.4774,
-    "longtitude": 590.44
-}
-
-###
-
-# Delete a place
-DELETE {{FoodOrderingApi_HostAddress}}/api/v1/places/{{placeId}}
-Accept: application/json
