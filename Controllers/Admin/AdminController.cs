@@ -18,10 +18,12 @@ public class AdminController : ControllerBase
         _adminService = adminService;
     }
 
-    [HttpGet]
+    [HttpGet("places")]
     public IActionResult GetAll()
     {
-        return Ok();
+        int ownerId = 77;
+        List<Place> places = _adminService.GetAllPlaces(ownerId);
+        return Ok(places);
     }
 
     [HttpGet("places/{id}")]
@@ -34,18 +36,28 @@ public class AdminController : ControllerBase
         return Ok(place);
     }
     
+    [HttpPost("places")]
+    public IActionResult AddPlace(Place place)
+    {
+        Place newPlace = _adminService.AddPlace(place);
+        return Ok(newPlace);
+    }
+
     [HttpPatch("places/{id}")]
     public IActionResult UpdatePlace(int id, AdminUpdatePlaceDto dto)
     {
-        var updated = _adminService.Update(id, dto);
-        if (updated == null)
-            return NotFound("Place does not exist.");
-
-        return Ok(updated);
-
+        var (result, updated) = _adminService.Update(id, dto);
+        return result switch
+        {
+            AdminUpdatePlaceResult.Success       => Ok(updated),
+            AdminUpdatePlaceResult.PlaceNotFound => NotFound("Place does not exist."),
+            AdminUpdatePlaceResult.UnknownChildId =>
+                BadRequest("Payload references a child id that does not exist under this place."),
+            _ => StatusCode(500)
+        };
     }
     
-    [HttpDelete("places{id}")]
+    [HttpDelete("places/{id}")]
     public IActionResult Delete(int id)
     {
         return Ok();

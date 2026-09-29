@@ -22,7 +22,8 @@ public class PlaceService
     }
 
     public GetPlaceDto? Get(int id)
-    {
+    {   
+        // Filter the hidden as well;
         var place = _db.Places
             .Include(p => p.ProductCategories)
             .ThenInclude(p => p.Products)
@@ -31,7 +32,7 @@ public class PlaceService
         if (place == null)
             return null;
 
-        // Filter the hidden as well;
+        
         return PlaceDtoMapper.MapToGetDto(place);
 
     }

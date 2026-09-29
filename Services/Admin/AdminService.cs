@@ -12,6 +12,12 @@ using Microsoft.EntityFrameworkCore;
 
 
 namespace FoodOrderingApi.Services.Admin;
+public enum AdminUpdatePlaceResult
+{
+    Success,
+    PlaceNotFound,
+    UnknownChildId
+}
 
 public class AdminService
 {
@@ -22,9 +28,10 @@ public class AdminService
     }
 
     // Not nested. Admin sees all places, hidden or not.
-    public List<Place>? GetAll()
+    public List<Place> GetAllPlaces(int ownerId)
     {
-        throw new NotImplementedException();
+        List<Place> places = _db.Places.ToList();
+        return places;
     }
 
     public Place? GetPlace(int id)
@@ -39,10 +46,15 @@ public class AdminService
             return place;
     }
 
-    // PATCH semantics: only non-null fields are applied.
-    public GetPlaceDto? Update(int id, AdminUpdatePlaceDto dto)
+    public Place AddPlace(Place place)
     {
-        // Load the whole tree WITH tracking (default). We'll mutate it in place.
+        _db.Places.Add(place);
+        _db.SaveChanges();
+
+        return place; 
+    }
+    public (AdminUpdatePlaceResult, GetPlaceDto?) Update(int id, AdminUpdatePlaceDto dto)
+    {
         Place? place = _db.Places
             .Include(p => p.ProductCategories)
                 .ThenInclude(pc => pc.Products)
@@ -50,20 +62,21 @@ public class AdminService
                         .ThenInclude(ac => ac.AddOns)
             .FirstOrDefault(p => p.Id == id);
 
-        if (place == null) return null;
+        if (place == null)
+            return (AdminUpdatePlaceResult.PlaceNotFound, null);
 
-        // 1. Flat fields
+        // Validate before mutating anything.
+        if (!AllChildIdsValid(place, dto))
+            return (AdminUpdatePlaceResult.UnknownChildId, null);
+
         place.Name        = dto.Name;
         place.Latitude    = dto.Latitude;
         place.Longtitude  = dto.Longtitude;
         place.Description = dto.Description;
 
-        // 2. Categories
         SyncCategories(place, dto.ProductCategories);
-
         _db.SaveChanges();
 
-        // Re-load with includes (or reuse `place`) and map. Simplest: reload.
         var reloaded = _db.Places
             .Include(p => p.ProductCategories)
                 .ThenInclude(pc => pc.Products)
@@ -71,7 +84,7 @@ public class AdminService
                         .ThenInclude(ac => ac.AddOns)
             .First(p => p.Id == id);
 
-        return PlaceDtoMapper.MapToGetDto(reloaded);
+        return (AdminUpdatePlaceResult.Success, PlaceDtoMapper.MapToGetDto(reloaded));
     }
 
     // Returns false if the place does not exist.
@@ -81,15 +94,48 @@ public class AdminService
     }
 
 
-    // Helpers for renewing
+
+
+    // SUTVARKYTI (KITAM FAILE IG?)
+    private static bool AllChildIdsValid(Place place, AdminUpdatePlaceDto dto)
+    {
+        var catsById = place.ProductCategories.ToDictionary(c => c.Id);
+
+        foreach (var catDto in dto.ProductCategories)
+        {
+            if (catDto.Id == 0) continue;                    // new node, nothing to validate
+            if (!catsById.TryGetValue(catDto.Id, out var cat)) return false;
+
+            var prodsById = cat.Products.ToDictionary(p => p.Id);
+            foreach (var prodDto in catDto.Products)
+            {
+                if (prodDto.Id == 0) continue;
+                if (!prodsById.TryGetValue(prodDto.Id, out var prod)) return false;
+
+                var aocsById = prod.AddOnCategories.ToDictionary(a => a.Id);
+                foreach (var aocDto in prodDto.AddOnCategories)
+                {
+                    if (aocDto.Id == 0) continue;
+                    if (!aocsById.TryGetValue(aocDto.Id, out var aoc)) return false;
+
+                    var addOnsById = aoc.AddOns.ToDictionary(a => a.Id);
+                    foreach (var addOnDto in aocDto.AddOns)
+                    {
+                        if (addOnDto.Id == 0) continue;
+                        if (!addOnsById.ContainsKey(addOnDto.Id)) return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
     private void SyncCategories(Place place, List<AdminUpdateCategoryDto> incoming)
     {
-        // Delete categories that weren't sent
-        var incomingIds = incoming.Where(c => c.Id != 0).Select(c => c.Id).ToHashSet();
-        var toDelete = place.ProductCategories.Where(c => !incomingIds.Contains(c.Id)).ToList();
-        _db.ProductCategories.RemoveRange(toDelete);
+        var deleteIds = incoming.Where(c => c.Destroy && c.Id != 0).Select(c => c.Id).ToHashSet();
+        _db.ProductCategories.RemoveRange(place.ProductCategories.Where(c => deleteIds.Contains(c.Id)));
 
-        foreach (var catDto in incoming)
+        foreach (var catDto in incoming.Where(c => !c.Destroy))
         {
             ProductCategory category;
             if (catDto.Id == 0)
@@ -99,6 +145,7 @@ public class AdminService
             }
             else
             {
+                // Existence validated up front, so First is safe here.
                 category = place.ProductCategories.First(c => c.Id == catDto.Id);
             }
 
@@ -112,11 +159,10 @@ public class AdminService
 
     private void SyncProducts(ProductCategory category, List<AdminUpdateProductDto> incoming)
     {
-        var incomingIds = incoming.Where(p => p.Id != 0).Select(p => p.Id).ToHashSet();
-        var toDelete = category.Products.Where(p => !incomingIds.Contains(p.Id)).ToList();
-        _db.Products.RemoveRange(toDelete);
+        var deleteIds = incoming.Where(p => p.Destroy && p.Id != 0).Select(p => p.Id).ToHashSet();
+        _db.Products.RemoveRange(category.Products.Where(p => deleteIds.Contains(p.Id)));
 
-        foreach (var prodDto in incoming)
+        foreach (var prodDto in incoming.Where(p => !p.Destroy))
         {
             Product product;
             if (prodDto.Id == 0)
@@ -140,11 +186,10 @@ public class AdminService
 
     private void SyncAddOnCategories(Product product, List<AdminUpdateAddOnCategoryDto> incoming)
     {
-        var incomingIds = incoming.Where(a => a.Id != 0).Select(a => a.Id).ToHashSet();
-        var toDelete = product.AddOnCategories.Where(a => !incomingIds.Contains(a.Id)).ToList();
-        _db.AddOnCategories.RemoveRange(toDelete);
+        var deleteIds = incoming.Where(a => a.Destroy && a.Id != 0).Select(a => a.Id).ToHashSet();
+        _db.AddOnCategories.RemoveRange(product.AddOnCategories.Where(a => deleteIds.Contains(a.Id)));
 
-        foreach (var aocDto in incoming)
+        foreach (var aocDto in incoming.Where(a => !a.Destroy))
         {
             AddOnCategory aoc;
             if (aocDto.Id == 0)
@@ -167,11 +212,10 @@ public class AdminService
 
     private void SyncAddOns(AddOnCategory aoc, List<AdminUpdateAddOnDto> incoming)
     {
-        var incomingIds = incoming.Where(a => a.Id != 0).Select(a => a.Id).ToHashSet();
-        var toDelete = aoc.AddOns.Where(a => !incomingIds.Contains(a.Id)).ToList();
-        _db.AddOns.RemoveRange(toDelete);
+        var deleteIds = incoming.Where(a => a.Destroy && a.Id != 0).Select(a => a.Id).ToHashSet();
+        _db.AddOns.RemoveRange(aoc.AddOns.Where(a => deleteIds.Contains(a.Id)));
 
-        foreach (var addOnDto in incoming)
+        foreach (var addOnDto in incoming.Where(a => !a.Destroy))
         {
             AddOn addOn;
             if (addOnDto.Id == 0)

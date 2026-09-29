@@ -24,6 +24,8 @@ public record AdminUpdateCategoryDto(
     [Range(0, int.MaxValue)]
     int Id,
 
+    bool Destroy,
+
     [Required]
     [MaxLength(50)]
     string Name,
@@ -40,6 +42,8 @@ public record AdminUpdateCategoryDto(
 public record AdminUpdateProductDto(
     [Range(0, int.MaxValue)]
     int Id,
+
+    bool Destroy,
 
     [Required]
     [MaxLength(200)]
@@ -61,6 +65,8 @@ public record AdminUpdateAddOnCategoryDto(
     [Range(0, int.MaxValue)]
     int Id,
 
+    bool Destroy,
+
     [Required]
     [MaxLength(200)]
     string Name,
@@ -76,6 +82,8 @@ public record AdminUpdateAddOnCategoryDto(
 public record AdminUpdateAddOnDto(
     [Range(0, int.MaxValue)]
     int Id,
+
+    bool Destroy,
 
     [Required]
     [MaxLength(200)]
