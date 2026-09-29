@@ -2,6 +2,7 @@ using FoodOrderingApi.Data;
 using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Dtos.Places;
 
+using FoodOrderingApi.Mappers;
 using Microsoft.EntityFrameworkCore;
 
 namespace FoodOrderingApi.Services.Places;
@@ -27,86 +28,17 @@ public class ProductService
         return products;
     }
 
-    public ProductDetailDto? Get(int id, int productCategoryId)
+    public GetProductDto? Get(int id, int productCategoryId)
     {
-        Product? product = _db.Products
+        var product = _db.Products
             .Include(p => p.AddOnCategories)
-            .ThenInclude(aoc => aoc.AddOns)
+            .ThenInclude(aoc => aoc.AddOns.Where(ao => !ao.Hidden))
             .FirstOrDefault(p => p.Id == id && p.ProductCategoryId == productCategoryId);
 
         if(product == null || product.ProductCategoryId != productCategoryId)
             return null;
 
-        ProductDetailDto productForReturn = new ProductDetailDto(
-            product.Id,
-            product.Name,
-            product.Description,
-            product.Price,
-            product.Hidden,
-            product.AddOnCategories.Select(aoc => new AddOnCategoriesDetailDto(
-                aoc.Id,
-                aoc.Name,
-                aoc.Required,
-                aoc.Multichoice,
-                aoc.AddOns.Select(ao => new AddOnDetailDto(
-                    ao.Id,
-                    ao.Name,
-                    ao.Price,
-                    ao.Hidden
-                )).ToList()
-            )).ToList()
-        );
-
-
-        return productForReturn;
+        return ProductDtoMapper.MapToGetDto(product);
     }
 
-    public Product? Add(Product product, int productCategoryId)
-    {
-        ProductCategory? category = _db.ProductCategories.Find(productCategoryId);
-
-        if (category == null)
-            return null;
-
-        product.ProductCategoryId = productCategoryId;
-        _db.Products.Add(product);
-        _db.SaveChanges();
-
-        return product;
-    }
-
-    public Product? Update(int id, int productCategoryId, UpdateProduct updateProductDto)
-    {
-        Product? product = _db.Products.Find(id);
-        if(product == null || product.ProductCategoryId != productCategoryId)
-            return null;
-
-
-        if (updateProductDto.Name != null)
-            product.Name = updateProductDto.Name;
-
-        if (updateProductDto.Description != null)
-            product.Description = updateProductDto.Description;
-
-        if (updateProductDto.Hidden.HasValue)
-            product.Hidden = updateProductDto.Hidden.Value;
-
-        if (updateProductDto.Price.HasValue)
-            product.Price = updateProductDto.Price.Value;
-
-        _db.SaveChanges();
-        return product;
-    }
-
-    public bool Delete(int id, int productCategoryId)
-    {
-        Product? product = _db.Products.Find(id);
-        if(product == null || product.ProductCategoryId != productCategoryId)
-            return false;
-
-        _db.Products.Remove(product);
-        _db.SaveChanges();
-
-        return true;
-    }
 }

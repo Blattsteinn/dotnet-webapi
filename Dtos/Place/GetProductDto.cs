@@ -1,6 +1,6 @@
 
 namespace FoodOrderingApi.Dtos.Places;
-public record ProductDetailDto(
+public record GetProductDto(
     int Id,
     string Name,
     string? Description,

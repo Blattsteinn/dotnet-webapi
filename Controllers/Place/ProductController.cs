@@ -30,48 +30,11 @@ public class ProductController : ControllerBase
     [HttpGet("{id}")]
     public IActionResult Get(int id, int productCategoryId)
     {
-        ProductDetailDto? product = _productService.Get(id, productCategoryId);
+        GetProductDto? product = _productService.Get(id, productCategoryId);
         if(product == null)
             return NotFound("Product does not exist.");
 
         return Ok(product);
     }
-
     
-    [HttpPost]
-    public IActionResult Add(Product product, int productCategoryId)
-    {   
-        var newProduct = _productService.Add(product, productCategoryId);
-
-        if(newProduct == null)
-            return NotFound("Product does not exist.");
-
-        return Ok(new CreateProductDto(
-            newProduct.Id,
-            newProduct.Name,
-            newProduct.Description,
-            newProduct.Hidden,
-            newProduct.Price
-        ));
-    }
-
-    [HttpPatch("{id}")]
-    public IActionResult Update(int id, int productCategoryId, UpdateProduct updateProduct)
-    {
-        Product? product = _productService.Update(id, productCategoryId, updateProduct);
-        if(product == null)
-            return NotFound("Product does not exist.");
-
-        return Ok(product);  
-    }
-
-    [HttpDelete("{id}")]
-    public IActionResult Delete(int id, int productCategoryId)
-    {
-        bool exists = _productService.Delete(id, productCategoryId);
-        if (!exists)
-            return NotFound("Product does not exist.");
-
-        return NoContent();
-    }
 }
