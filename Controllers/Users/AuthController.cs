@@ -7,6 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+ using System.Linq; 
 
 namespace FoodOrderingApi.Controllers;
 
@@ -45,6 +46,8 @@ public class AuthController : ControllerBase
         return Ok();
     }
 
+
+
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto)
     {
@@ -61,7 +64,9 @@ public class AuthController : ControllerBase
         if (!validPassword)
             return Unauthorized();
 
-        var claims = new[]
+        var roles = await _userManager.GetRolesAsync(user);
+
+        var claims = new List<Claim>
         {
             new Claim(
                 ClaimTypes.NameIdentifier,
@@ -72,6 +77,10 @@ public class AuthController : ControllerBase
                 user.Email!
             )
         };
+
+        claims.AddRange(
+            roles.Select(role => new Claim(ClaimTypes.Role, role))
+        );
 
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(
@@ -97,4 +106,5 @@ public class AuthController : ControllerBase
             token = new JwtSecurityTokenHandler().WriteToken(token)
         });
     }
+
 }

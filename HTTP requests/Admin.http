@@ -1,16 +1,22 @@
 @host = http://localhost:5258
 @placeId =7786
 
+@auth_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjRkMzgxMDNjLWNjZjQtNDExOC1hZjE3LTgzYTMxYTU0MzhhMiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6InJlZ3VsYXJAZXhhbXBsZS5jb20iLCJleHAiOjE3OTA3NjYyOTYsImlzcyI6IkZvb2RPcmRlcmluZ0FwaSIsImF1ZCI6IkZvb2RPcmRlcmluZ0FwaSJ9.sIz2qdvJUy_0xsztbQpk0sjMDembnc6ORQnuoH2tEk4
+
+
 ### Get all places (admin)
 GET {{host}}/api/v1/admin/places
 Accept: application/json
+Authorization: Bearer {{auth_token}}
 
 ### Get place by id (admin, fully nested, hidden included)
 GET {{host}}/api/v1/admin/places/{{placeId}}
+Authorization: Bearer {{auth_token}}
 Accept: application/json
 
 ### PATCH place — valid (this one should return 200)
 PATCH {{host}}/api/v1/admin/places/{{placeId}}
+Authorization: Bearer {{auth_token}}
 Content-Type: application/json
 
 {
@@ -32,6 +38,7 @@ Content-Type: application/json
 
 ### POST
 POST {{host}}/api/v1/admin/places
+Authorization: Bearer {{auth_token}}
 Content-Type: application/json
 
 {
@@ -43,4 +50,5 @@ Content-Type: application/json
 
 ### Delete a place
 DELETE {{host}}/api/v1/admin/places/{{placeId}}
+Authorization: Bearer {{auth_token}}
 Accept: application/json

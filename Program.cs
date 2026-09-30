@@ -9,6 +9,7 @@ using FoodOrderingApi.Models.Users;
 
 // Auth imports ----
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 // ----------------
@@ -38,6 +39,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Added this for auth.
 builder.Services
     .AddIdentityCore<ApplicationUser>()
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>();
 
 builder.Services
@@ -77,6 +79,7 @@ builder.Services.AddScoped<AdminService>();
 
 var app = builder.Build();
 
+
 // Seed
 using (var scope = app.Services.CreateScope())
 {
@@ -84,6 +87,30 @@ using (var scope = app.Services.CreateScope())
     db.Database.EnsureCreated();
     DbSeeder.Seed(db);
 }
+
+// -----------------------------------------------
+// For adding a role to a test user
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+    var roleName = "Admin";
+
+    if (!await roleManager.RoleExistsAsync(roleName))
+    {
+        await roleManager.CreateAsync(new IdentityRole(roleName));
+    }
+
+    var user = await userManager.FindByEmailAsync("test@example.com");
+
+    if (user != null && !await userManager.IsInRoleAsync(user, roleName))
+    {
+        await userManager.AddToRoleAsync(user, roleName);
+    }
+}
+// -----------------------------------------------
+
 
 
 // Configure the HTTP request pipeline.

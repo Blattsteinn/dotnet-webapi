@@ -5,13 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 using FoodOrderingApi.Dtos.Places;
 using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Dtos.Admin;
+using Microsoft.AspNetCore.Authorization;
 
 namespace FoodOrderingApi.Controllers.Admin;
 
-// WHEN AUTH IS A THING PLACE MUST BE UNDER AN OWNER HERE:
-
 [ApiController]
 [Route("api/v1/admin")]
+[Authorize(Roles = "Admin")]
 public class AdminController : ControllerBase
 {
     private readonly AdminService _adminService;
