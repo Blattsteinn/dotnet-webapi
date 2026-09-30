@@ -112,8 +112,6 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<PlaceService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<OrderService>();
-builder.Services.AddScoped<OrderItemService>();
-builder.Services.AddScoped<OrderItemAddOnService>();
 
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<OwnerService>();

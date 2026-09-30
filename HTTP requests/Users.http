@@ -3,7 +3,7 @@ POST http://localhost:5258/api/v1/auth/register
 Content-Type: application/json
 
 {
-  "email": "regular@example.com",
+  "email": "cool@example.com",
   "password": "TestPassword123!"
 }
 
@@ -12,7 +12,7 @@ POST http://localhost:5258/api/v1/auth/login
 Content-Type: application/json
 
 {
-  "email": "test@example.com",
+  "email": "cool@example.com",
   "password": "TestPassword123!"
 }
 

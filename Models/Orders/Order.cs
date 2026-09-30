@@ -8,14 +8,14 @@ public class Order
 {
     public int Id { get; set; }
 
-    // Note: FK can be null so that we could delete place 
+    // FK can be null so that we could delete place 
     public int? PlaceId { get; set; }
 
     public Place? Place { get; set; }
     public List<OrderItem> OrderItems { get; set; } = [];
 
-    // User table does not exist yet
-    // public int UserId { get; set; }
+    // FK can be null so that the user could delete themselves 
+    public string? UserId { get; set; }
 
     [EnumDataType(typeof(OrderStatus))]
     public OrderStatus Status { get; set; } = OrderStatus.Pending;

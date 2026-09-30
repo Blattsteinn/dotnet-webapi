@@ -1,8 +1,10 @@
 using System.Security.Claims;
 
 using FoodOrderingApi.Authorization;
+using FoodOrderingApi.Dtos.Orders;
 using FoodOrderingApi.Dtos.Owner;
 using FoodOrderingApi.Dtos.Places;
+using FoodOrderingApi.Services.Orders;
 using FoodOrderingApi.Services.Owners;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,11 +21,18 @@ namespace FoodOrderingApi.Controllers.Owners;
 public class OwnerController : ControllerBase
 {
     private readonly OwnerService _ownerService;
+    private readonly OrderService _orderService;
 
-    public OwnerController(OwnerService ownerService)
+    public OwnerController(OwnerService ownerService, OrderService orderService)
     {
         _ownerService = ownerService;
+        _orderService = orderService;
     }
+
+    // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // Control actions regarding place
+
 
     // This finds an user from auth token.
     private string CallerId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -64,5 +73,47 @@ public class OwnerController : ControllerBase
                 BadRequest("JSON included a child id that does not exist under this place."),
             _ => StatusCode(500)
         };
+    }
+    
+    // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // Control actions regarding orders
+
+    // GET all the orders from a specific place
+    [HttpGet("places/{placeId}/orders")]
+    public IActionResult GetOrders(int placeId)
+    {
+        List<GetOrderDto>? orders = _orderService.GetForPlace(CallerId, placeId);
+
+        if (orders == null)
+            return NotFound("Place does not exist or is not yours.");
+
+        return Ok(orders);
+    }
+
+    [HttpGet("places/{placeId}/orders/{orderId}")]
+    public IActionResult GetOrder(int placeId, int orderId)
+    {
+        GetOrderDto? order = _orderService.GetForPlace(CallerId, placeId, orderId);
+        if (order == null)
+            return NotFound("Order does not exist for this place.");
+
+        return Ok(order);
+    }
+
+    // The contents of a placed order are immutable; only the OrderStatus can change.
+    [HttpPatch("places/{placeId}/orders/{orderId}/status")]
+    public IActionResult UpdateOrderStatus(int placeId, int orderId, UpdateOrderDto dto)
+    {
+        if (dto.Status == null)
+            return BadRequest("A status is required.");
+
+        GetOrderDto? updated =
+            _orderService.SetStatusForPlace(CallerId, placeId, orderId, dto.Status.Value);
+
+        if (updated == null)
+            return NotFound("Order does not exist for this place.");
+
+        return Ok(updated);
     }
 }

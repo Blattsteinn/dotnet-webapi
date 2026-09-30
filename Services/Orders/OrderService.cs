@@ -26,26 +26,85 @@ public class OrderService
         _db = db;
     }
 
-    // Does not expect a full list.
-    public List<Order> GetAll()
+    private IQueryable<Order> WithItems() =>
+        _db.Orders
+            .Include(o => o.OrderItems)
+            .ThenInclude(oi => oi.OrderItemAddOns);
+
+    private bool OwnerHoldsPlace(string ownerId, int placeId) =>
+        _db.PlaceOwnerships.Any(o => o.PlaceId == placeId && o.OwnerId == ownerId);
+
+    // --------------------------------------------------------------
+    // --- CUSTOMER scope -------------------------------------------
+
+    public List<GetOrderDto> GetForUser(string userId)
     {
-        return _db.Orders.ToList();
+        return WithItems()
+            .Where(o => o.UserId == userId)
+            .OrderByDescending(o => o.CreatedAt)
+            .ToList()
+            .Select(OrderDtoMapper.MapToDto)
+            .ToList();
     }
 
-    public GetOrderDto? Get(int id)
-    {   
-        Order? order = _db.Orders
-            .Include(o => o.OrderItems)
-            .ThenInclude(oi => oi.OrderItemAddOns)
-            .FirstOrDefault(o => o.Id  == id);
-            
+    // Returns null when the order is missing OR when it belongs to
+    // somebody else.
+    public GetOrderDto? GetForUser(string userId, int orderId)
+    {
+        Order? order = WithItems()
+            .FirstOrDefault(o => o.Id == orderId && o.UserId == userId);
+
+        return order == null ? null : OrderDtoMapper.MapToDto(order);
+    }
+
+    // --------------------------------------------------------------
+    // --- PLACE OWNER scope ----------------------------------------
+
+    // null == the place does not exist, or does not belong to this owner.
+    public List<GetOrderDto>? GetForPlace(string ownerId, int placeId)
+    {
+        if (!OwnerHoldsPlace(ownerId, placeId))
+            return null;
+
+        return WithItems()
+            .Where(o => o.PlaceId == placeId)
+            .OrderByDescending(o => o.CreatedAt)
+            .ToList()
+            .Select(OrderDtoMapper.MapToDto)
+            .ToList();
+    }
+
+    public GetOrderDto? GetForPlace(string ownerId, int placeId, int orderId)
+    {
+        if (!OwnerHoldsPlace(ownerId, placeId))
+            return null;
+
+        Order? order = WithItems()
+            .FirstOrDefault(o => o.Id == orderId && o.PlaceId == placeId);
+
+        return order == null ? null : OrderDtoMapper.MapToDto(order);
+    }
+
+    // The contents of a placed order are immutable; only the status can change.
+    public GetOrderDto? SetStatusForPlace(string ownerId, int placeId, int orderId, OrderStatus status)
+    {
+        if (!OwnerHoldsPlace(ownerId, placeId))
+            return null;
+
+        Order? order = WithItems()
+            .FirstOrDefault(o => o.Id == orderId && o.PlaceId == placeId);
+
         if (order == null)
             return null;
+
+        order.Status = status;
+        _db.SaveChanges();
 
         return OrderDtoMapper.MapToDto(order);
     }
 
-    public (GetOrderDto?, AddOrderResult) Add(CreateOrderDto orderDto)
+    // userId here comes from the caller's token.
+    public (GetOrderDto?, AddOrderResult) Add(CreateOrderDto orderDto, string? userId)
     {   
 
         /// CLIENT SENDS: CreateOrderDto
@@ -70,6 +129,7 @@ public class OrderService
         var newOrder = new Order
         {
             PlaceId = placeId,
+            UserId = userId,
             Status = OrderStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };
@@ -118,24 +178,4 @@ public class OrderService
         return (OrderDtoMapper.MapToDto(newOrder), AddOrderResult.Success);
   
     }
-
-    public GetOrderDto? Update(int id, UpdateOrderDto orderDto)
-    {
-        Order? order = _db.Orders
-             .Include(o => o.OrderItems)
-             .ThenInclude(oi => oi.OrderItemAddOns)
-             .FirstOrDefault(o => o.Id  == id);
-
-        if (order == null)
-            return null;
-
-        if(orderDto.Status.HasValue)
-            order.Status = orderDto.Status.Value;
-        
-
-        _db.SaveChanges();
-
-        return OrderDtoMapper.MapToDto(order);
-    }
-
 }

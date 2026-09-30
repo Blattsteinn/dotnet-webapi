@@ -32,9 +32,14 @@ namespace FoodOrderingApi.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("UserId")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PlaceId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Orders");
                 });
@@ -466,6 +471,11 @@ namespace FoodOrderingApi.Migrations
                     b.HasOne("FoodOrderingApi.Models.Places.Place", "Place")
                         .WithMany()
                         .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("FoodOrderingApi.Models.Users.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Place");

@@ -1,22 +1,29 @@
 @FoodOrderingApi_HostAddress = http://localhost:5258
 @placeId = 1
-@orderId = 4257
+@orderId = 4262
 
-# Get all orders
+# Paste a customer's token from POST /api/v1/auth/login.
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImUyMDU2MmExLWRkYzQtNDI4My1hZGQ5LTRlZDBjMGIxOWM2ZCIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6ImNvb2xAZXhhbXBsZS5jb20iLCJBc3BOZXQuSWRlbnRpdHkuU2VjdXJpdHlTdGFtcCI6IlNDM1VQWVlYUDdUUUlNS0VWNEQ0SUQ3VlJFSUI1WDIyIiwiZXhwIjoxNzkwNzk1NDEwLCJpc3MiOiJGb29kT3JkZXJpbmdBcGkiLCJhdWQiOiJGb29kT3JkZXJpbmdBcGkifQ.80asuOTIm45nHZxoEU46123B2kOMBl2_GHUlsBi69lM
+
+###
+# My orders — customer scope. Returns only the caller's own orders, so this
+# needs a token (it used to be an unauthenticated "every order in the system").
 GET {{FoodOrderingApi_HostAddress}}/api/v1/orders
+Authorization: Bearer {{token}}
 Accept: application/json
 
 ###
 
-# Get an order by id
+# One of my orders
 GET {{FoodOrderingApi_HostAddress}}/api/v1/orders/{{orderId}}
+Authorization: Bearer {{token}}
 Accept: application/json
 
 ###
 
 # Create an order
 POST {{FoodOrderingApi_HostAddress}}/api/v1/orders
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6Ijg4YjU2N2FhLWNkNTQtNDQwMC1hODRjLTkzYTMwNTMxODI4ZiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3OTA3NjQwNDEsImlzcyI6IkZvb2RPcmRlcmluZ0FwaSIsImF1ZCI6IkZvb2RPcmRlcmluZ0FwaSJ9.1_j82BMou5nPKesQ-tEnJk_T_To_Dax4_GXVzkDT32U
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -42,13 +49,7 @@ Content-Type: application/json
 
 ###
 
-# Update an order status
+# Changing a status is no longer a customer action — it is owner-scoped:
+#   PATCH /api/v1/owner/places/{placeId}/orders/{orderId}/status
+# See Owners.http.
 # OrderStatus: 0 = Pending, 1 = Confirmed, 2 = Preparing, 3 = Ready, 4 = Completed, 5 = Cancelled
-PATCH {{FoodOrderingApi_HostAddress}}/api/v1/orders/{{orderId}}
-Content-Type: application/json
-
-{
-    "status": 4
-}
-
-###

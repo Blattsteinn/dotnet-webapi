@@ -47,6 +47,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(x => x.PlaceId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        // An account can be deleted without taking its order history with it:
+        // the order stays, UserId goes null.
+        modelBuilder.Entity<Order>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         modelBuilder.Entity<PlaceOwnership>(ownership =>
         {
             // a place has exactly one owner.
