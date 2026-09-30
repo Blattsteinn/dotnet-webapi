@@ -1,9 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+
 using FoodOrderingApi.Models.Orders;
 using FoodOrderingApi.Models.Places;
+using FoodOrderingApi.Models.Users;
+
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace FoodOrderingApi.Data;
-public class AppDbContext : DbContext
+public class AppDbContext : IdentityDbContext<ApplicationUser>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -19,8 +23,11 @@ public class AppDbContext : DbContext
     public DbSet<Order> Orders => Set<Order>();
 
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<OrderItemAddOn> OrderItemAddOns => Set<OrderItemAddOn>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+        
         modelBuilder.Entity<OrderItem>()
             .HasOne(x => x.Product)
             .WithMany()
@@ -40,5 +47,5 @@ public class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.SetNull);
     }
 
-    public DbSet<OrderItemAddOn> OrderItemAddOns => Set<OrderItemAddOn>();
+    
 }

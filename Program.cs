@@ -5,11 +5,26 @@ using FoodOrderingApi.Services.Places;
 using System.Text.Json.Serialization;
 using FoodOrderingApi.Services.Admin;
 
+using FoodOrderingApi.Models.Users;
+
+// Auth imports ----
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+// ----------------
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+// also ignores JSON cycling
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler =
+            ReferenceHandler.IgnoreCycles;
+    });
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -19,6 +34,38 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection")
     ));
 
+// ------------------------------------
+// Added this for auth.
+builder.Services
+    .AddIdentityCore<ApplicationUser>()
+    .AddEntityFrameworkStores<AppDbContext>();
+
+builder.Services
+    .AddAuthentication()
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(
+                    builder.Configuration["Jwt:Key"]!
+                )
+            )
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+//------------------------------------------------- 
+
 builder.Services.AddScoped<PlaceService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<OrderService>();
@@ -27,11 +74,6 @@ builder.Services.AddScoped<OrderItemAddOnService>();
 
 builder.Services.AddScoped<AdminService>();
 
-// JSON cycle ignoring
-builder.Services.AddControllers()
-    .AddJsonOptions(options => {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    });
 
 var app = builder.Build();
 
@@ -52,6 +94,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

@@ -3,6 +3,7 @@ using FoodOrderingApi.Models.Orders;
 using FoodOrderingApi.Services.Orders;
 using FoodOrderingApi.Dtos.Orders;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace FoodOrderingApi.Controllers.Orders;
 
@@ -34,6 +35,7 @@ public class OrderController : ControllerBase
         return Ok(order);
     }
 
+    [Authorize]
     [HttpPost]
     public IActionResult Add(CreateOrderDto createOrderDto)
     {
