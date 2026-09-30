@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace FoodOrderingApi.Dtos.Admin;
+namespace FoodOrderingApi.Dtos.Owner;
 
-public record AdminUpdatePlaceDto(
+public record OwnerUpdatePlaceDto(
     [Required]
     [MaxLength(200)]
     string Name,
@@ -16,10 +16,12 @@ public record AdminUpdatePlaceDto(
     [MaxLength(500)]
     string? Description,
 
-    List<AdminUpdateCategoryDto> ProductCategories
+    bool Hidden,
+    
+    List<OwnerUpdateCategoryDto> ProductCategories
 );
 
-public record AdminUpdateCategoryDto(
+public record OwnerUpdateCategoryDto(
     // 0 = new node. Any other value must match an existing id under the parent.
     [Range(0, int.MaxValue)]
     int Id,
@@ -35,11 +37,11 @@ public record AdminUpdateCategoryDto(
 
     bool Hidden,
 
-    List<AdminUpdateProductDto> Products
+    List<OwnerUpdateProductDto> Products
 );
 
 
-public record AdminUpdateProductDto(
+public record OwnerUpdateProductDto(
     [Range(0, int.MaxValue)]
     int Id,
 
@@ -57,11 +59,11 @@ public record AdminUpdateProductDto(
     [Range(typeof(decimal), "0.00", "10000")]
     decimal Price,
 
-    List<AdminUpdateAddOnCategoryDto> AddOnCategories
+    List<OwnerUpdateAddOnCategoryDto> AddOnCategories
 );
 
 
-public record AdminUpdateAddOnCategoryDto(
+public record OwnerUpdateAddOnCategoryDto(
     [Range(0, int.MaxValue)]
     int Id,
 
@@ -75,11 +77,11 @@ public record AdminUpdateAddOnCategoryDto(
 
     bool Multichoice,
 
-    List<AdminUpdateAddOnDto> AddOns
+    List<OwnerUpdateAddOnDto> AddOns
 );
 
 
-public record AdminUpdateAddOnDto(
+public record OwnerUpdateAddOnDto(
     [Range(0, int.MaxValue)]
     int Id,
 

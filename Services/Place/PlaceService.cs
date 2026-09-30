@@ -15,10 +15,11 @@ public class PlaceService
     {
         _db = db;
     }
-    
+
+    // Hidden places are invisible to customers.
     public List<Place> GetAll()
     {
-        return _db.Places.ToList();
+        return _db.Places.Where(p => !p.Hidden).ToList();
     }
 
     public GetPlaceDto? Get(int id)
@@ -27,7 +28,7 @@ public class PlaceService
         var place = _db.Places
             .Include(p => p.ProductCategories.Where(pc => !pc.Hidden))
             .ThenInclude(pc => pc.Products.Where(pr => !pr.Hidden))
-            .FirstOrDefault(p => p.Id == id);
+            .FirstOrDefault(p => p.Id == id && !p.Hidden);
 
         if (place == null)
             return null;

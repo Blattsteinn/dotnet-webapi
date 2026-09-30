@@ -18,6 +18,7 @@ public static class PlaceDtoMapper
                 Longtitude: place.Longtitude,
                 Name: place.Name,
                 Description: place.Description,
+                Hidden: place.Hidden,
                 ProductCategories: place.ProductCategories
                     .Select(category => new ProductCategoriesDetailDto(
                         Id: category.Id,

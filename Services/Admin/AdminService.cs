@@ -1,42 +1,54 @@
 using FoodOrderingApi.Data;
 
-using FoodOrderingApi.Models.Orders;
 using FoodOrderingApi.Models.Places;
+using FoodOrderingApi.Models.Users;
 
-using FoodOrderingApi.Dtos.Orders;
-using FoodOrderingApi.Dtos.Places;
-using FoodOrderingApi.Dtos.Admin;
-
-using FoodOrderingApi.Mappers;
+using FoodOrderingApi.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 
 namespace FoodOrderingApi.Services.Admin;
-public enum AdminUpdatePlaceResult
+
+public enum AdminRoleResult
 {
     Success,
-    PlaceNotFound,
-    UnknownChildId
+    UserNotFound,
+    UnknownRole,
+    NotInRole,
+    Failed
+}
+
+public enum AdminVisibilityResult
+{
+    Success,
+    PlaceNotFound
 }
 
 public class AdminService
 {
     private readonly AppDbContext _db;
-    public AdminService(AppDbContext db)
+    private readonly UserManager<ApplicationUser> _userManager;
+
+    public AdminService(AppDbContext db, UserManager<ApplicationUser> userManager)
     {
         _db = db;
+        _userManager = userManager;
     }
 
     // Not nested. Admin sees all places, hidden or not.
     public List<Place> GetAllPlaces()
     {
-        List<Place> places = _db.Places.ToList();
+        List<Place> places = _db.Places
+            .Include(p => p.Ownership)
+            .ToList();
         return places;
     }
 
     public Place? GetPlace(int id)
     {   
         Place? place = _db.Places
+            .Include(p => p.Ownership)
             .Include(p => p.ProductCategories)
             .ThenInclude(pc => pc.Products)
             .ThenInclude(p => p.AddOnCategories)
@@ -53,41 +65,8 @@ public class AdminService
 
         return place; 
     }
-    public (AdminUpdatePlaceResult, GetPlaceDto?) Update(int id, AdminUpdatePlaceDto dto)
-    {
-        Place? place = _db.Places
-            .Include(p => p.ProductCategories)
-                .ThenInclude(pc => pc.Products)
-                    .ThenInclude(p => p.AddOnCategories)
-                        .ThenInclude(ac => ac.AddOns)
-            .FirstOrDefault(p => p.Id == id);
 
-        if (place == null)
-            return (AdminUpdatePlaceResult.PlaceNotFound, null);
-
-        // Validate before mutating anything.
-        if (!AllChildIdsValid(place, dto))
-            return (AdminUpdatePlaceResult.UnknownChildId, null);
-
-        place.Name        = dto.Name;
-        place.Latitude    = dto.Latitude;
-        place.Longtitude  = dto.Longtitude;
-        place.Description = dto.Description;
-
-        SyncCategories(place, dto.ProductCategories);
-        _db.SaveChanges();
-
-        var reloaded = _db.Places
-            .Include(p => p.ProductCategories)
-                .ThenInclude(pc => pc.Products)
-                    .ThenInclude(p => p.AddOnCategories)
-                        .ThenInclude(ac => ac.AddOns)
-            .First(p => p.Id == id);
-
-        return (AdminUpdatePlaceResult.Success, PlaceDtoMapper.MapToGetDto(reloaded));
-    }
-
-    public bool Delete(int id)
+    public bool DeletePlace(int id)
     {
         Place? place = _db.Places.Find(id);
         if (place == null)
@@ -99,142 +78,97 @@ public class AdminService
 
     }
 
+    // -------------------------------------------------------------------
+    // -- Role assignment ------------------------------------------------
 
-    // SUTVARKYTI (KITAM FAILE IG?)
-    private static bool AllChildIdsValid(Place place, AdminUpdatePlaceDto dto)
+    // Promoting a user to Owner is the admin's job, and it is what unlocks the
+    // /api/v1/owner endpoints for that user.
+
+    // Note: regranting a role does not make the place visible. Owners should do that 
+    // manually. AssignRoleAsync never touches places
+    public async Task<AdminRoleResult> AssignRoleAsync(string userId, string role)
     {
-        var catsById = place.ProductCategories.ToDictionary(c => c.Id);
+        var known = MatchKnownRole(role);
+        if (known == null)
+            return AdminRoleResult.UnknownRole;
 
-        foreach (var catDto in dto.ProductCategories)
-        {
-            if (catDto.Id == 0) continue;                    // new node, nothing to validate
-            if (!catsById.TryGetValue(catDto.Id, out var cat)) return false;
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return AdminRoleResult.UserNotFound;
 
-            var prodsById = cat.Products.ToDictionary(p => p.Id);
-            foreach (var prodDto in catDto.Products)
-            {
-                if (prodDto.Id == 0) continue;
-                if (!prodsById.TryGetValue(prodDto.Id, out var prod)) return false;
+        if (await _userManager.IsInRoleAsync(user, known))
+            return AdminRoleResult.Success;             // idempotent
 
-                var aocsById = prod.AddOnCategories.ToDictionary(a => a.Id);
-                foreach (var aocDto in prodDto.AddOnCategories)
-                {
-                    if (aocDto.Id == 0) continue;
-                    if (!aocsById.TryGetValue(aocDto.Id, out var aoc)) return false;
+        var result = await _userManager.AddToRoleAsync(user, known);
+        if (!result.Succeeded)
+            return AdminRoleResult.Failed;
 
-                    var addOnsById = aoc.AddOns.ToDictionary(a => a.Id);
-                    foreach (var addOnDto in aocDto.AddOns)
-                    {
-                        if (addOnDto.Id == 0) continue;
-                        if (!addOnsById.ContainsKey(addOnDto.Id)) return false;
-                    }
-                }
-            }
-        }
-        return true;
+        // Rotate the stamp so tokens issued before this moment stop working.
+        await _userManager.UpdateSecurityStampAsync(user);
+        return AdminRoleResult.Success;
     }
 
-    private void SyncCategories(Place place, List<AdminUpdateCategoryDto> incoming)
+    // Revoking Owner demotes user back to a regular AND
+    // takes that person's places out of public view (sets hidden = true)
+    //
+    // The Ownership rows are kept on purpose if we ever re-grant them the role.
+    public async Task<AdminRoleResult> RemoveRoleAsync(string userId, string role)
     {
-        var deleteIds = incoming.Where(c => c.Destroy && c.Id != 0).Select(c => c.Id).ToHashSet();
-        _db.ProductCategories.RemoveRange(place.ProductCategories.Where(c => deleteIds.Contains(c.Id)));
+        var known = MatchKnownRole(role);
+        if (known == null)
+            return AdminRoleResult.UnknownRole;
 
-        foreach (var catDto in incoming.Where(c => !c.Destroy))
-        {
-            ProductCategory category;
-            if (catDto.Id == 0)
-            {
-                category = new ProductCategory { Name = catDto.Name };
-                place.ProductCategories.Add(category);
-            }
-            else
-            {
-                // Existence validated up front, so First is safe here.
-                category = place.ProductCategories.First(c => c.Id == catDto.Id);
-            }
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return AdminRoleResult.UserNotFound;
 
-            category.Name        = catDto.Name;
-            category.Description = catDto.Description;
-            category.Hidden      = catDto.Hidden;
+        if (!await _userManager.IsInRoleAsync(user, known))
+            return AdminRoleResult.NotInRole;
 
-            SyncProducts(category, catDto.Products);
-        }
+        var result = await _userManager.RemoveFromRoleAsync(user, known);
+        if (!result.Succeeded)
+            return AdminRoleResult.Failed;
+
+        // Doesn't wait for the JWT token to expire.
+        // Removes the existing token on their very next request, 
+        await _userManager.UpdateSecurityStampAsync(user);
+
+        if (known == Roles.Owner)
+            // Here we make all of user owned places hidden
+            SetVisibilityForOwner(user.Id, hidden: true);
+
+        return AdminRoleResult.Success;
     }
 
-    private void SyncProducts(ProductCategory category, List<AdminUpdateProductDto> incoming)
+    // -------------------------------------------------------------------
+    // -- Visibility controls --------------------------------------------
+
+    // Just in case admin needs to hide the place:
+    public AdminVisibilityResult SetVisibility(int placeId, bool hidden)
     {
-        var deleteIds = incoming.Where(p => p.Destroy && p.Id != 0).Select(p => p.Id).ToHashSet();
-        _db.Products.RemoveRange(category.Products.Where(p => deleteIds.Contains(p.Id)));
+        Place? place = _db.Places.FirstOrDefault(p => p.Id == placeId);
+        if (place == null)
+            return AdminVisibilityResult.PlaceNotFound;
 
-        foreach (var prodDto in incoming.Where(p => !p.Destroy))
-        {
-            Product product;
-            if (prodDto.Id == 0)
-            {
-                product = new Product { Name = prodDto.Name };
-                category.Products.Add(product);
-            }
-            else
-            {
-                product = category.Products.First(p => p.Id == prodDto.Id);
-            }
-
-            product.Name        = prodDto.Name;
-            product.Description = prodDto.Description;
-            product.Hidden      = prodDto.Hidden;
-            product.Price       = prodDto.Price;
-
-            SyncAddOnCategories(product, prodDto.AddOnCategories);
-        }
+        place.Hidden = hidden;
+        _db.SaveChanges();
+        return AdminVisibilityResult.Success;
     }
 
-    private void SyncAddOnCategories(Product product, List<AdminUpdateAddOnCategoryDto> incoming)
+    // Used when owner is demoted.
+    // RemoveRoleAsync calls this: 
+    private void SetVisibilityForOwner(string ownerId, bool hidden)
     {
-        var deleteIds = incoming.Where(a => a.Destroy && a.Id != 0).Select(a => a.Id).ToHashSet();
-        _db.AddOnCategories.RemoveRange(product.AddOnCategories.Where(a => deleteIds.Contains(a.Id)));
+        var owned = _db.Places
+            .Where(p => p.Ownership != null && p.Ownership.OwnerId == ownerId)
+            .ToList();
 
-        foreach (var aocDto in incoming.Where(a => !a.Destroy))
-        {
-            AddOnCategory aoc;
-            if (aocDto.Id == 0)
-            {
-                aoc = new AddOnCategory { Name = aocDto.Name };
-                product.AddOnCategories.Add(aoc);
-            }
-            else
-            {
-                aoc = product.AddOnCategories.First(a => a.Id == aocDto.Id);
-            }
+        foreach (var place in owned)
+            place.Hidden = hidden;
 
-            aoc.Name        = aocDto.Name;
-            aoc.Required    = aocDto.Required;
-            aoc.Multichoice = aocDto.Multichoice;
-
-            SyncAddOns(aoc, aocDto.AddOns);
-        }
+        _db.SaveChanges();
     }
 
-    private void SyncAddOns(AddOnCategory aoc, List<AdminUpdateAddOnDto> incoming)
-    {
-        var deleteIds = incoming.Where(a => a.Destroy && a.Id != 0).Select(a => a.Id).ToHashSet();
-        _db.AddOns.RemoveRange(aoc.AddOns.Where(a => deleteIds.Contains(a.Id)));
-
-        foreach (var addOnDto in incoming.Where(a => !a.Destroy))
-        {
-            AddOn addOn;
-            if (addOnDto.Id == 0)
-            {
-                addOn = new AddOn { Name = addOnDto.Name };
-                aoc.AddOns.Add(addOn);
-            }
-            else
-            {
-                addOn = aoc.AddOns.First(a => a.Id == addOnDto.Id);
-            }
-
-            addOn.Name   = addOnDto.Name;
-            addOn.Price  = addOnDto.Price;
-            addOn.Hidden = addOnDto.Hidden;
-        }
-    }
+    private static string? MatchKnownRole(string role) =>
+        Roles.All.FirstOrDefault(r => string.Equals(r, role, StringComparison.OrdinalIgnoreCase));
 }

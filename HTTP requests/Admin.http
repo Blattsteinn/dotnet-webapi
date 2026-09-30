@@ -14,26 +14,16 @@ GET {{host}}/api/v1/admin/places/{{placeId}}
 Authorization: Bearer {{auth_token}}
 Accept: application/json
 
-### PATCH place — valid (this one should return 200)
-PATCH {{host}}/api/v1/admin/places/{{placeId}}
+### PATCH place visibility — the admin's place-level control
+# Admin no longer edits place content; that is the owner's PATCH /api/v1/owner/places/{id}.
+# This is what the admin uses to hide / re-publish a place, including recovering one
+# that was auto-hidden when its owner was demoted.
+PATCH {{host}}/api/v1/admin/places/{{placeId}}/visibility
 Authorization: Bearer {{auth_token}}
 Content-Type: application/json
 
 {
-  "name": "Pizza Palace v1",
-  "latitude": 0.7128,
-  "longtitude": -74.0060,
-  "description": "Updated description",
-  "productCategories": [
-    {
-      "id": 29,
-      "Destroy": true,
-      "name": "Pizzas",
-      "description": null,
-      "hidden": false,
-      "products": []
-    }
-  ]
+  "hidden": true
 }
 
 ### POST

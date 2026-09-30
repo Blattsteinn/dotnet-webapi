@@ -2,16 +2,17 @@
 using FoodOrderingApi.Services.Admin;
 using Microsoft.AspNetCore.Mvc;
 
-using FoodOrderingApi.Dtos.Places;
 using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Dtos.Admin;
+
 using Microsoft.AspNetCore.Authorization;
+using FoodOrderingApi.Authorization;
 
 namespace FoodOrderingApi.Controllers.Admin;
 
 [ApiController]
 [Route("api/v1/admin")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = Roles.Admin)]
 public class AdminController : ControllerBase
 {
     private readonly AdminService _adminService;
@@ -21,7 +22,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("places")]
-    public IActionResult GetAll()
+    public IActionResult GetAllPlaces()
     {
         List<Place> places = _adminService.GetAllPlaces();
         return Ok(places);
@@ -44,28 +45,69 @@ public class AdminController : ControllerBase
         return Ok(newPlace);
     }
 
-    [HttpPatch("places/{id}")]
-    public IActionResult UpdatePlace(int id, AdminUpdatePlaceDto dto)
-    {
-        var (result, updated) = _adminService.Update(id, dto);
-        return result switch
-        {
-            AdminUpdatePlaceResult.Success       => Ok(updated),
-            AdminUpdatePlaceResult.PlaceNotFound => NotFound("Place does not exist."),
-            AdminUpdatePlaceResult.UnknownChildId =>
-                BadRequest("Payload references a child id that does not exist under this place."),
-            _ => StatusCode(500)
-        };
-    }
-    
+
 
     [HttpDelete("places/{id}")]
-    public IActionResult Delete(int id)
+    public IActionResult DeletePlace(int id)
     {
-        bool exists = _adminService.Delete(id);
+        bool exists = _adminService.DeletePlace(id);
         if(!exists)
             return NotFound();
 
         return NoContent();
+    }
+
+    // -------------------------------------------------------------------
+    // -- Roles ----------------------------------------------------------
+
+    // # NOTE: do NOT revoke the Admin role from Admin account.
+    // # can only re-grant Admin directly in the database then.
+
+    // This request grants an Owner / Admin role.
+    // It's the only way a user becomes able to create places.
+    [HttpPost("users/{userId}/roles")]
+    public async Task<IActionResult> AssignRole(string userId, AssignRoleDto dto)
+    {
+        AdminRoleResult result = await _adminService.AssignRoleAsync(userId, dto.Role);
+        return result switch
+        {
+            AdminRoleResult.Success      => Ok(new { userId, role = dto.Role }),
+            AdminRoleResult.UserNotFound => NotFound("User does not exist."),
+            AdminRoleResult.UnknownRole  => BadRequest("Unknown role. Allowed: Admin, Owner."),
+            _ => StatusCode(500)
+        };
+    }
+
+    // Revoking Owner's role
+    // Side effect: it also hides every place that user owned.
+    [HttpDelete("users/{userId}/roles/{role}")]
+    public async Task<IActionResult> RemoveRole(string userId, string role)
+    {
+        AdminRoleResult result = await _adminService.RemoveRoleAsync(userId, role);
+        return result switch
+        {
+            AdminRoleResult.Success      => NoContent(),
+            AdminRoleResult.UserNotFound => NotFound("User does not exist."),
+            AdminRoleResult.UnknownRole  => BadRequest("Unknown role. Allowed: Admin, Owner."),
+            AdminRoleResult.NotInRole    => BadRequest("User does not have that role."),
+            _ => StatusCode(500)
+        };
+    }
+
+    // -------------------------------------------------------------------
+    // -- Visibility -----------------------------------------------------
+
+    // This REQUEST is for ownerless places or just for general admin control.
+    // Hides or re-publishes a single place.
+    [HttpPatch("places/{id}/visibility")]
+    public IActionResult SetVisibility(int id, SetPlaceVisibilityDto dto)
+    {
+        AdminVisibilityResult result = _adminService.SetVisibility(id, dto.Hidden);
+        return result switch
+        {
+            AdminVisibilityResult.Success       => Ok(new { placeId = id, hidden = dto.Hidden }),
+            AdminVisibilityResult.PlaceNotFound => NotFound("Place does not exist."),
+            _ => StatusCode(500)
+        };
     }
 }

@@ -165,6 +165,9 @@ namespace FoodOrderingApi.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("Hidden")
+                        .HasColumnType("INTEGER");
+
                     b.Property<double>("Latitude")
                         .HasColumnType("REAL");
 
@@ -179,6 +182,32 @@ namespace FoodOrderingApi.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Places");
+                });
+
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.PlaceOwnership", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PlaceId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("PlaceId")
+                        .IsUnique();
+
+                    b.ToTable("PlaceOwnerships");
                 });
 
             modelBuilder.Entity("FoodOrderingApi.Models.Places.Product", b =>
@@ -240,7 +269,7 @@ namespace FoodOrderingApi.Migrations
                     b.ToTable("ProductCategories");
                 });
 
-            modelBuilder.Entity("FoodOrderingApi.Models.User.ApplicationUser", b =>
+            modelBuilder.Entity("FoodOrderingApi.Models.Users.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("TEXT");
@@ -500,6 +529,25 @@ namespace FoodOrderingApi.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.PlaceOwnership", b =>
+                {
+                    b.HasOne("FoodOrderingApi.Models.Users.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FoodOrderingApi.Models.Places.Place", "Place")
+                        .WithOne("Ownership")
+                        .HasForeignKey("FoodOrderingApi.Models.Places.PlaceOwnership", "PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
+
+                    b.Navigation("Place");
+                });
+
             modelBuilder.Entity("FoodOrderingApi.Models.Places.Product", b =>
                 {
                     b.HasOne("FoodOrderingApi.Models.Places.ProductCategory", "ProductCategory")
@@ -533,7 +581,7 @@ namespace FoodOrderingApi.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("FoodOrderingApi.Models.User.ApplicationUser", null)
+                    b.HasOne("FoodOrderingApi.Models.Users.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -542,7 +590,7 @@ namespace FoodOrderingApi.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("FoodOrderingApi.Models.User.ApplicationUser", null)
+                    b.HasOne("FoodOrderingApi.Models.Users.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -557,7 +605,7 @@ namespace FoodOrderingApi.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("FoodOrderingApi.Models.User.ApplicationUser", null)
+                    b.HasOne("FoodOrderingApi.Models.Users.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -566,7 +614,7 @@ namespace FoodOrderingApi.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("FoodOrderingApi.Models.User.ApplicationUser", null)
+                    b.HasOne("FoodOrderingApi.Models.Users.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -590,6 +638,8 @@ namespace FoodOrderingApi.Migrations
 
             modelBuilder.Entity("FoodOrderingApi.Models.Places.Place", b =>
                 {
+                    b.Navigation("Ownership");
+
                     b.Navigation("ProductCategories");
                 });
 

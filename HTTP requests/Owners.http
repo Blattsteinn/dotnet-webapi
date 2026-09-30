@@ -1,0 +1,536 @@
+###############################################################################
+# Owner role + Place ownership — manual test file
+#
+# No manual setup: the admin account is seeded on startup by Program.cs
+# (appsettings.Development.json -> Seed:AdminEmail / Seed:AdminPassword).
+#
+# Run the requests TOP TO BOTTOM. Named requests (@name) publish their response
+# fields as variables, so a request fails if the request producing its variable
+# has not been run yet.
+#
+# Syntax rule: a `@var = {{name.response...}}` line must be separated from the
+# request body by a `###` delimiter. Without the delimiter the line is parsed as
+# part of the body and the request fails with 400 ("'@' is invalid after a
+# single JSON value"). Every such block below is delimited.
+#
+# Vocabulary used below:
+#   Owner role      = global. "May this person create places at all?"
+#   Ownership row   = per place. "Which places may this person edit?"
+#   Hidden flag     = per place. Set by the owner in their update payload, by the
+#                     admin through the visibility endpoint, and by the system
+#                     when an owner is demoted.
+#
+# NOTE: the owner update payload is a FULL REPLACE, not a merge. Every PATCH must
+# send "hidden" explicitly, otherwise it defaults to false and silently
+# re-publishes a place that was meant to stay hidden.
+#
+# SQLite cross-checks if a response surprises you:
+#   sqlite3 platform.db "SELECT u.Email, r.Name FROM AspNetUsers u
+#     JOIN AspNetUserRoles ur ON ur.UserId = u.Id
+#     JOIN AspNetRoles r ON r.Id = ur.RoleId;"
+#   sqlite3 platform.db "SELECT o.Id, o.PlaceId, o.OwnerId, p.Name, p.Hidden
+#     FROM PlaceOwnerships o JOIN Places p ON p.Id = o.PlaceId;"
+###############################################################################
+
+@host = http://localhost:5258
+
+@password = TestPassword123!
+
+# Seeded by Program.cs on startup (appsettings.Development.json).
+@adminEmail = test@example.com
+@adminPassword = TestPassword123!
+
+# Two accounts used as owners. Two of them, so that "owner of THIS place" can be
+# told apart from "any owner".
+@owner1Email = owner1@example.com
+@owner2Email = owner2@example.com
+
+
+###############################################################################
+# 1. LOGIN
+###############################################################################
+
+### 1.1 Login as the seeded admin
+# Expect: 200, roles: ["Admin"]
+# @name adminLogin
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+###
+
+@adminToken = {{adminLogin.response.body.$.token}}
+
+### 1.2 Register the two future owners (idempotent: 400 if already registered)
+POST {{host}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{owner1Email}}",
+  "password": "{{password}}"
+}
+
+### 1.3
+POST {{host}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{owner2Email}}",
+  "password": "{{password}}"
+}
+
+### 1.4 Login as owner1
+# Expect: 200, roles: [] — the account exists but has no capability yet
+# @name owner1Login
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{owner1Email}}",
+  "password": "{{password}}"
+}
+
+###
+
+@owner1Token = {{owner1Login.response.body.$.token}}
+@owner1Id = {{owner1Login.response.body.$.userId}}
+
+### 1.5 Login as owner2
+# @name owner2Login
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{owner2Email}}",
+  "password": "{{password}}"
+}
+
+###
+
+@owner2Token = {{owner2Login.response.body.$.token}}
+@owner2Id = {{owner2Login.response.body.$.userId}}
+
+
+###############################################################################
+# 2. GATE 1 — THE OWNER ROLE (global capability)
+###############################################################################
+
+### 2.1 A role-less user is refused by the owner endpoints
+# Expect: 403 — authenticated, but not allowed
+GET {{host}}/api/v1/owner/places
+Authorization: Bearer {{owner1Token}}
+Accept: application/json
+
+### 2.2 Admin promotes owner1
+# Expect: 200 { "userId": "...", "role": "Owner" }
+POST {{host}}/api/v1/admin/users/{{owner1Id}}/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "role": "Owner"
+}
+
+### 2.3 Admin promotes owner2 as well
+# Expect: 200
+POST {{host}}/api/v1/admin/users/{{owner2Id}}/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "role": "Owner"
+}
+
+### 2.4 Re-login owner1: the role is now in the token
+# The old token was issued before the promotion and its security stamp is now
+# stale, so it would be rejected with 401. Promotion is a credentials change.
+# Expect: 200, roles: ["Owner"]  <- seed the updated token
+# @name owner1ReLogin
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{owner1Email}}",
+  "password": "{{password}}"
+}
+
+###
+
+@owner1Token = {{owner1ReLogin.response.body.$.token}}
+
+### 2.5 Idempotency: promoting again still succeeds
+# Expect: 200
+POST {{host}}/api/v1/admin/users/{{owner1Id}}/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "role": "Owner"
+}
+
+### 2.6 NEGATIVE: unknown role
+# Expect: 400 "Unknown role. Allowed: Admin, Owner."
+POST {{host}}/api/v1/admin/users/{{owner1Id}}/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "role": "Manager"
+}
+
+### 2.7 NEGATIVE: unknown user
+# Expect: 404 "User does not exist."
+POST {{host}}/api/v1/admin/users/not-a-real-user-id/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "role": "Owner"
+}
+
+### 2.8 The Owner role is NOT admin
+# Expect: 403 — Owner and Admin are separate capabilities
+GET {{host}}/api/v1/admin/places
+Authorization: Bearer {{owner1Token}}
+Accept: application/json
+
+
+###############################################################################
+# 3. GATE 2 — THE OWNERSHIP ROW (per place)
+###############################################################################
+
+### 3.1 Owner1 creates a place
+# The Ownership row is written by the system in the same save — there is no
+# owner field in the request body and no way to claim a place for someone else.
+# Expect: 201 Created with the new place (note "hidden": false)
+# @name createPlace1
+POST {{host}}/api/v1/owner/places
+Authorization: Bearer {{owner1Token}}
+Content-Type: application/json
+
+{
+  "name": "Owner One Diner",
+  "latitude": 54.6872,
+  "longtitude": 25.2797,
+  "description": "Created by owner1"
+}
+
+###
+
+@placeId = {{createPlace1.response.body.$.id}}
+
+### 3.2 The same owner creates a SECOND place
+# Expect: 201 — OwnerId has no unique constraint, so one owner may hold many places
+# @name createPlace2
+POST {{host}}/api/v1/owner/places
+Authorization: Bearer {{owner1Token}}
+Content-Type: application/json
+
+{
+  "name": "Owner One Cafe",
+  "latitude": 54.6900,
+  "longtitude": 25.2800,
+  "description": "Second place for owner1"
+}
+
+### 3.3 Owner1 lists their places
+# Expect: 200 with BOTH places 3.1 and 3.2
+GET {{host}}/api/v1/owner/places
+Authorization: Bearer {{owner1Token}}
+Accept: application/json
+
+### 3.4 Owner2 owns nothing
+# Expect: 200 with an empty array — owning the role is not owning places
+GET {{host}}/api/v1/owner/places
+Authorization: Bearer {{owner2Token}}
+Accept: application/json
+
+### 3.5 NEGATIVE: another owner cannot edit someone else's place
+# This is the whole point of the Ownership row: owner2 has the Owner role but no
+# row for this place.
+# Expect: 403 Forbidden
+PATCH {{host}}/api/v1/owner/places/{{placeId}}
+Authorization: Bearer {{owner2Token}}
+Content-Type: application/json
+
+{
+  "name": "Hijacked",
+  "latitude": 1.0,
+  "longtitude": 2.0,
+  "description": "owned by owner1",
+  "productCategories": []
+}
+
+### 3.6 NEGATIVE: another owner cannot even read someone else's place
+# Expect: 404 — a 403 here would leak which place ids exist
+GET {{host}}/api/v1/owner/places/{{placeId}}
+Authorization: Bearer {{owner2Token}}
+Accept: application/json
+
+### 3.7 The owning user edits their own place (nested graph included)
+# Expect: 200 with the updated name and the new category/product
+PATCH {{host}}/api/v1/owner/places/{{placeId}}
+Authorization: Bearer {{owner1Token}}
+Content-Type: application/json
+
+{
+  "name": "Owner One Diner v2",
+  "latitude": 54.6872,
+  "longtitude": 25.2797,
+  "description": "Edited by owner1",
+  "hidden": false,
+  "productCategories": [
+    {
+      "id": 0,
+      "destroy": false,
+      "name": "Mains",
+      "description": null,
+      "hidden": false,
+      "products": [
+        {
+          "id": 0,
+          "destroy": false,
+          "name": "Cheeseburger",
+          "description": "Beef and cheese",
+          "hidden": false,
+          "price": 7.50,
+          "addOnCategories": []
+        }
+      ]
+    }
+  ]
+}
+
+### 3.8 Read back through the owner endpoint
+# Expect: 200 with the "Mains" category and the Cheeseburger product
+GET {{host}}/api/v1/owner/places/{{placeId}}
+Authorization: Bearer {{owner1Token}}
+Accept: application/json
+
+### 3.9 Public: the place is visible while the owner holds the role
+# Expect: 200
+GET {{host}}/api/v1/places/{{placeId}}
+Accept: application/json
+
+### 3.10 The owner hides their OWN place
+# "hidden" is a place-level field of the update payload, so an owner does not
+# need the admin to take one of their places off the menu.
+# Expect: 200 with "hidden": true echoed back
+PATCH {{host}}/api/v1/owner/places/{{placeId}}
+Authorization: Bearer {{owner1Token}}
+Content-Type: application/json
+
+{
+  "name": "Owner One Diner v2",
+  "latitude": 54.6872,
+  "longtitude": 25.2797,
+  "description": "Temporarily closed",
+  "hidden": true,
+  "productCategories": []
+}
+
+### 3.11 Hidden by its owner == hidden from the public
+# Expect: 404 — the same result the admin-driven hide produces
+GET {{host}}/api/v1/places/{{placeId}}
+Accept: application/json
+
+### 3.12 ...but the owner still sees and can fix it
+# The owner endpoints read through the Ownership row, not through Hidden, so a
+# hidden place does not disappear for the person responsible for it.
+# Expect: 200 with "hidden": true
+GET {{host}}/api/v1/owner/places/{{placeId}}
+Authorization: Bearer {{owner1Token}}
+Accept: application/json
+
+### 3.13 The owner re-publishes it
+# Expect: 200 with "hidden": false
+PATCH {{host}}/api/v1/owner/places/{{placeId}}
+Authorization: Bearer {{owner1Token}}
+Content-Type: application/json
+
+{
+  "name": "Owner One Diner v2",
+  "latitude": 54.6872,
+  "longtitude": 25.2797,
+  "description": "Back open",
+  "hidden": false,
+  "productCategories": []
+}
+
+### 3.14 Public again
+# Expect: 200 — section 4 starts from a visible place, as it expects
+GET {{host}}/api/v1/places/{{placeId}}
+Accept: application/json
+
+
+###############################################################################
+# 4. REVOKING: THE PLACE BECOMES HIDDEN
+###############################################################################
+
+### 4.1 Admin revokes owner1's Owner role
+# Expect: 204 No Content
+# Side effects: every place in owner1's Ownership rows is flipped to Hidden,
+#               and owner1's security stamp is rotated.
+DELETE {{host}}/api/v1/admin/users/{{owner1Id}}/roles/Owner
+Authorization: Bearer {{adminToken}}
+
+### 4.2 The place is gone from the public endpoint
+# Expect: 404 — it still exists, but it is hidden
+GET {{host}}/api/v1/places/{{placeId}}
+Accept: application/json
+
+### 4.3 ...and gone from the public list
+# Expect: 200, and NO entry with id == {{placeId}}
+GET {{host}}/api/v1/places
+Accept: application/json
+
+### 4.4 A revoked owner's EXISTING token stops working immediately
+# Expect: 401 Unauthorized, not 403 and not 200.
+# The token still contains the "Owner" role claim, but its security stamp no
+# longer matches the store, so it is rejected before authorization runs.
+GET {{host}}/api/v1/owner/places
+Authorization: Bearer {{owner1Token}}
+Accept: application/json
+
+### 4.5 ...and they cannot edit the place either
+# Expect: 401
+PATCH {{host}}/api/v1/owner/places/{{placeId}}
+Authorization: Bearer {{owner1Token}}
+Content-Type: application/json
+
+{
+  "name": "Still mine?",
+  "latitude": 1.0,
+  "longtitude": 2.0,
+  "description": null,
+  "hidden": false,
+  "productCategories": []
+}
+
+### 4.6 Logging in again does NOT restore the capability
+# Expect: 200 but roles: [] — a fresh token, still no Owner role
+# @name owner1AfterRevoke
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{owner1Email}}",
+  "password": "{{password}}"
+}
+
+### 4.7 The fresh token is still refused by the owner endpoints
+# Expect: 403
+GET {{host}}/api/v1/owner/places
+Authorization: Bearer {{owner1AfterRevoke.response.body.$.token}}
+Accept: application/json
+
+### 4.8 The admin still sees everything, including the hidden place
+# Expect: 200, "hidden": true, and ownership.ownerId == {{owner1Id}}
+GET {{host}}/api/v1/admin/places/{{placeId}}
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+
+###############################################################################
+# 5. RECOVERY — the admin decides what becomes visible again
+###############################################################################
+
+### 5.1 Re-promoting does NOT un-hide anything by itself
+# Expect: 200, but then 5.2 must still be 404
+POST {{host}}/api/v1/admin/users/{{owner1Id}}/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "role": "Owner"
+}
+
+### 5.2 Still hidden after re-promotion
+# Expect: 404
+GET {{host}}/api/v1/places/{{placeId}}
+Accept: application/json
+
+### 5.3 The admin un-hides the place explicitly
+# Expect: 200 { "placeId": ..., "hidden": false }
+PATCH {{host}}/api/v1/admin/places/{{placeId}}/visibility
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "hidden": false
+}
+
+### 5.4 The place is publicly visible again
+# Expect: 200
+GET {{host}}/api/v1/places/{{placeId}}
+Accept: application/json
+
+### 5.5 And the owner (now re-promoted) can edit it again — with a NEW token
+# The pre-revocation token stays dead forever, which is the intended behaviour.
+# @name owner1Recovered
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{owner1Email}}",
+  "password": "{{password}}"
+}
+
+### 5.6
+# Expect: 200
+PATCH {{host}}/api/v1/owner/places/{{placeId}}
+Authorization: Bearer {{owner1Recovered.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "name": "Owner One Diner v3",
+  "latitude": 54.6872,
+  "longtitude": 25.2797,
+  "description": "Back in business",
+  "hidden": false,
+  "productCategories": []
+}
+
+### 5.7 NEGATIVE: revoking a role the user does not have
+# Expect: 400 "User does not have that role."
+DELETE {{host}}/api/v1/admin/users/{{owner2Id}}/roles/Admin
+Authorization: Bearer {{adminToken}}
+
+### 5.8 NEGATIVE: revoking an unknown role
+# Expect: 400 "Unknown role. Allowed: Admin, Owner."
+DELETE {{host}}/api/v1/admin/users/{{owner2Id}}/roles/Manager
+Authorization: Bearer {{adminToken}}
+
+# NOTE: do NOT experiment with revoking the Admin role from your own account —
+# it succeeds, rotates your security stamp, and locks you out until you seed or
+# re-grant Admin directly in the database.
+
+
+###############################################################################
+# 6. CLEANUP (optional)
+###############################################################################
+
+### 6.1 Hide the test place again
+PATCH {{host}}/api/v1/admin/places/{{placeId}}/visibility
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "hidden": true
+}
+
+### 6.2 Dispose of owner1's capability
+DELETE {{host}}/api/v1/admin/users/{{owner1Id}}/roles/Owner
+Authorization: Bearer {{adminToken}}
+
+### 6.3
+DELETE {{host}}/api/v1/admin/users/{{owner2Id}}/roles/Owner
+Authorization: Bearer {{adminToken}}
+
+### 6.4 Delete the test places (ownership rows cascade with them)
+DELETE {{host}}/api/v1/admin/places/{{placeId}}
+Authorization: Bearer {{adminToken}}

@@ -7,7 +7,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
- using System.Linq; 
+using System.Linq; 
+
+using FoodOrderingApi.Authorization;
 
 namespace FoodOrderingApi.Controllers;
 
@@ -82,6 +84,13 @@ public class AuthController : ControllerBase
             roles.Select(role => new Claim(ClaimTypes.Role, role))
         );
 
+        // Stamped into the token so the API can tell whether the user's roles
+        // have changed since this token was issued.
+        claims.Add(new Claim(
+            AppClaimTypes.SecurityStamp,
+            await _userManager.GetSecurityStampAsync(user)
+        ));
+
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(
                 _configuration["Jwt:Key"]!
@@ -103,7 +112,10 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
-            token = new JwtSecurityTokenHandler().WriteToken(token)
+            token = new JwtSecurityTokenHandler().WriteToken(token),
+            userId = user.Id,
+            email = user.Email,
+            roles
         });
     }
 
