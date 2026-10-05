@@ -1,6 +1,5 @@
 using FoodOrderingApi.Services.Places;
 using Microsoft.AspNetCore.Mvc;
-using FoodOrderingApi.Models.Places;
 
 using FoodOrderingApi.Dtos.Places;
 
@@ -21,7 +20,7 @@ public class PlaceController : ControllerBase
     [HttpGet]
     public IActionResult GetAll()
     {
-        List<Place> places = _placeService.GetAll();
+        List<PlaceSummaryDto> places = _placeService.GetAll();
         return Ok(places);
     }
     

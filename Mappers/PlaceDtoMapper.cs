@@ -10,6 +10,18 @@ public static class PlaceDtoMapper
             // .Include(o => o.OrderItems)
             // .ThenInclude(oi => oi.OrderItemAddOns)
             // .FirstOrDefault(o => o.Id  == id);
+    public static PlaceSummaryDto MapToSummaryDto(Place place)
+        {
+            return new PlaceSummaryDto(
+                Id: place.Id,
+                Name: place.Name,
+                Description: place.Description,
+                Latitude: place.Latitude,
+                Longtitude: place.Longtitude,
+                Hidden: place.Hidden
+            );
+        }
+
     public static GetPlaceDto MapToGetDto(Place place)
         {
             return new GetPlaceDto(

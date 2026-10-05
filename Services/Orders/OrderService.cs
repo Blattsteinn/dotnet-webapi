@@ -18,6 +18,7 @@ public enum AddOrderResult
     ProductNotFound,
     AddOnNotFound,
     RequiredAddOnsNotSpecified,
+    SingleChoiceAddOnsExceeded,
 }
 
 public class OrderService
@@ -108,15 +109,21 @@ public class OrderService
                 Quantity = orderItem.Quantity
             };
 
-            // Each product has addOnCategories,
-            // we need to find those categories, that have required set as true
+            // Each product has addOnCategories. Categories having Required must
+            // have at least one add-on chosen, and categories that are not
+            // Multichoice accept at most one add-on.
             var requiredCategories = product.AddOnCategories
                 .Where(c => c.Required)
                 .Select(c => c.Id)
                 .ToHashSet();
 
-            var presentCategories = new HashSet<int>();
-            
+            var singleChoiceCategories = product.AddOnCategories
+                .Where(c => !c.Multichoice)
+                .Select(c => c.Id)
+                .ToHashSet();
+
+            var chosenPerCategory = new Dictionary<int, int>();
+
             List<CreateOrderItemAddOnDto> orderItemAddOnsDto = orderItem.AddOns;
             foreach (var addOnDto in orderItemAddOnsDto)
             {
@@ -124,14 +131,19 @@ public class OrderService
                 AddOn? addOn = _db.AddOns.Find(addOnDto.AddOnId);
                 if(addOn == null)
                     return (null, AddOrderResult.AddOnNotFound);
-                
-                // Check if this addOn category id is in the required addOnCategory list
+
                 int addOnCategoryId = addOn.AddOnCategoryId;
-                if (requiredCategories.Contains(addOnCategoryId))
+
+                chosenPerCategory.TryGetValue(addOnCategoryId, out int chosen);
+                chosen++;
+                chosenPerCategory[addOnCategoryId] = chosen;
+
+                // A category that is not Multichoice accepts a single add-on.
+                if (singleChoiceCategories.Contains(addOnCategoryId) && chosen > 1)
                 {
-                    presentCategories.Add(addOnCategoryId);
+                    return (null, AddOrderResult.SingleChoiceAddOnsExceeded);
                 }
-                    
+
                 var newOrderItemAddOn = new OrderItemAddOn
                 {
                     AddOnId = addOn.Id,
@@ -144,7 +156,7 @@ public class OrderService
             }
             
             // Check if required addOns are here
-            if (!requiredCategories.IsSubsetOf(presentCategories))
+            if (!requiredCategories.IsSubsetOf(chosenPerCategory.Keys))
             {
                 return (null, AddOrderResult.RequiredAddOnsNotSpecified);
             }

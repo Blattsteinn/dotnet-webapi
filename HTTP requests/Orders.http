@@ -3,8 +3,7 @@
 @orderId = 4262
 
 # Paste a customer's token from POST /api/v1/auth/login.
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImUyMDU2MmExLWRkYzQtNDI4My1hZGQ5LTRlZDBjMGIxOWM2ZCIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6ImNvb2xAZXhhbXBsZS5jb20iLCJBc3BOZXQuSWRlbnRpdHkuU2VjdXJpdHlTdGFtcCI6IlNDM1VQWVlYUDdUUUlNS0VWNEQ0SUQ3VlJFSUI1WDIyIiwiZXhwIjoxNzkxMjE0MzU3LCJpc3MiOiJGb29kT3JkZXJpbmdBcGkiLCJhdWQiOiJGb29kT3JkZXJpbmdBcGkifQ.KV98yg8PEJXdzNBXYJUnmPB-pse693AcyOLpWIcirDA
-
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjJkODEzNjBmLTQ5MDEtNGI0MC1hZTQ5LTAwN2I3MTUwMDc2ZSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6ImNvb2xAZXhhbXBsZS5jb20iLCJBc3BOZXQuSWRlbnRpdHkuU2VjdXJpdHlTdGFtcCI6IjZGSlZVSktETUxFWFhEVTZOSklIUkZPV0RZWENJVkxHIiwiZXhwIjoxNzkxMjE2MzMwLCJpc3MiOiJGb29kT3JkZXJpbmdBcGkiLCJhdWQiOiJGb29kT3JkZXJpbmdBcGkifQ.-D2OyIVyBfjFPqoXUitTkBpDJHpnllUTu1oVjJq7B04
 ###
 # My orders — customer scope. Returns only the caller's own orders, so this
 # needs a token (it used to be an unauthenticated "every order in the system").
@@ -67,6 +66,36 @@ Content-Type: application/json
             "addOns": [
                 {
                     "addOnId": 4,
+                    "quantity": 1
+                }
+            ]
+        }
+    ]
+
+}
+
+###
+# Create an order — single-choice category violated. "Crust Type" is
+# Multichoice = false, so picking add-ons 4 (Regular) and 5 (Thin) at once
+# returns 400 SingleChoiceAddOnsExceeded. "Extra Toppings" is Multichoice =
+# true, so combining 2 and 3 there is fine.
+POST {{FoodOrderingApi_HostAddress}}/api/v1/orders
+Authorization: ******
+Content-Type: application/json
+
+{
+    "placeId": {{placeId}},
+    "orderItems": [
+        {
+            "productId": 1,
+            "quantity": 1,
+            "addOns": [
+                {
+                    "addOnId": 4,
+                    "quantity": 1
+                },
+                {
+                    "addOnId": 5,
                     "quantity": 1
                 }
             ]
