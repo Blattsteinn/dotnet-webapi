@@ -31,6 +31,7 @@ public class OrderController : ControllerBase
             AddOrderResult.ZeroProducts => BadRequest("Your request didn't specify any produts."),
             AddOrderResult.ProductNotFound => NotFound("Request specified product ID/s that do not exist."),
             AddOrderResult.AddOnNotFound => NotFound("Request specified add on ID/s that do not exist."),
+            AddOrderResult.RequiredAddOnsNotSpecified => BadRequest("Your order add ons do not have the required ones."),
             AddOrderResult.Success => Ok(newOrder),
              _ =>  StatusCode(500)
         };

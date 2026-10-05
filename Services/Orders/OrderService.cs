@@ -6,6 +6,7 @@ using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Dtos.Orders;
 using FoodOrderingApi.Mappers;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace FoodOrderingApi.Services.Orders;
 
@@ -16,6 +17,7 @@ public enum AddOrderResult
     ZeroProducts,
     ProductNotFound,
     AddOnNotFound,
+    RequiredAddOnsNotSpecified,
 }
 
 public class OrderService
@@ -56,6 +58,107 @@ public class OrderService
 
         return order == null ? null : OrderDtoMapper.MapToDto(order);
     }
+
+    // userId here comes from the caller's token.
+    public (GetOrderDto?, AddOrderResult) Add(CreateOrderDto orderDto, string? userId)
+    {   
+
+        /// CLIENT SENDS: CreateOrderDto
+        /// 
+        /// We construct Order, OrderItem, OrderItemAddOn 
+        /// as we loop through IDs in CreateOrderDto
+        /// 
+        /// RETURN VALUE: OrderDto
+
+        int placeId = orderDto.PlaceId;
+
+        // If place does not exist return early
+        Place? place = _db.Places.Find(placeId);
+        if(place == null)
+            return (null, AddOrderResult.PlaceNotFound);
+        
+        // If no products return early
+        List<CreateOrderItemDto> orderItemDto = orderDto.OrderItems;
+        if(orderItemDto.Count == 0)
+            return(null, AddOrderResult.ZeroProducts);
+        
+        var newOrder = new Order
+        {
+            PlaceId = placeId,
+            UserId = userId,
+            Status = OrderStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+
+        foreach(var orderItem in orderItemDto)
+        {   
+            // If product does not exist return early
+            Product? product = _db.Products
+                .Include(p => p.AddOnCategories)
+                .FirstOrDefault(p => p.Id == orderItem.ProductId);
+            if(product == null)
+                return (null, AddOrderResult.ProductNotFound);
+
+            var newOrderItem = new OrderItem
+            {
+                ProductId = product.Id,
+                Name = product.Name,
+                Price = product.Price,
+                Quantity = orderItem.Quantity
+            };
+
+            // Each product has addOnCategories,
+            // we need to find those categories, that have required set as true
+            var requiredCategories = product.AddOnCategories
+                .Where(c => c.Required)
+                .Select(c => c.Id)
+                .ToHashSet();
+
+            var presentCategories = new HashSet<int>();
+            
+            List<CreateOrderItemAddOnDto> orderItemAddOnsDto = orderItem.AddOns;
+            foreach (var addOnDto in orderItemAddOnsDto)
+            {
+                // If addOn does not exist return early
+                AddOn? addOn = _db.AddOns.Find(addOnDto.AddOnId);
+                if(addOn == null)
+                    return (null, AddOrderResult.AddOnNotFound);
+                
+                // Check if this addOn category id is in the required addOnCategory list
+                int addOnCategoryId = addOn.AddOnCategoryId;
+                if (requiredCategories.Contains(addOnCategoryId))
+                {
+                    presentCategories.Add(addOnCategoryId);
+                }
+                    
+                var newOrderItemAddOn = new OrderItemAddOn
+                {
+                    AddOnId = addOn.Id,
+                    Name = addOn.Name,
+                    Price = addOn.Price,
+                    Quantity = addOnDto.Quantity
+                };
+
+                newOrderItem.OrderItemAddOns.Add(newOrderItemAddOn);
+            }
+            
+            // Check if required addOns are here
+            if (!requiredCategories.IsSubsetOf(presentCategories))
+            {
+                return (null, AddOrderResult.RequiredAddOnsNotSpecified);
+            }
+
+            newOrder.OrderItems.Add(newOrderItem);
+ 
+        }
+
+        _db.Orders.Add(newOrder);
+        _db.SaveChanges();
+        return (OrderDtoMapper.MapToDto(newOrder), AddOrderResult.Success);
+  
+    }
+    
 
     // --------------------------------------------------------------
     // --- PLACE OWNER scope ----------------------------------------
@@ -103,79 +206,4 @@ public class OrderService
         return OrderDtoMapper.MapToDto(order);
     }
 
-    // userId here comes from the caller's token.
-    public (GetOrderDto?, AddOrderResult) Add(CreateOrderDto orderDto, string? userId)
-    {   
-
-        /// CLIENT SENDS: CreateOrderDto
-        /// 
-        /// We construct Order, OrderItem, OrderItemAddOn 
-        /// as we loop through IDs in CreateOrderDto
-        /// 
-        /// RETURN VALUE: OrderDto
-
-        int placeId = orderDto.PlaceId;
-
-        // If place does not exist return early
-        Place? place = _db.Places.Find(placeId);
-        if(place == null)
-            return (null, AddOrderResult.PlaceNotFound);
-        
-        // If no products return early
-        List<CreateOrderItemDto> orderItemDto = orderDto.OrderItems;
-        if(orderItemDto.Count == 0)
-            return(null, AddOrderResult.ZeroProducts);
-        
-        var newOrder = new Order
-        {
-            PlaceId = placeId,
-            UserId = userId,
-            Status = OrderStatus.Pending,
-            CreatedAt = DateTime.UtcNow
-        };
-
-
-        foreach(var orderItem in orderItemDto)
-        {   
-            // If product does not exist return early
-            Product? product = _db.Products.Find(orderItem.ProductId);
-            if(product == null)
-                return (null, AddOrderResult.ProductNotFound);
-
-            var newOrderItem = new OrderItem
-            {
-                ProductId = product.Id,
-                Name = product.Name,
-                Price = product.Price,
-                Quantity = orderItem.Quantity
-            };
-
-
-            List<CreateOrderItemAddOnDto> orderItemAddOnsDto = orderItem.AddOns;
-            foreach (var addOnDto in orderItemAddOnsDto)
-            {
-                // If addOn does not exist return early
-                AddOn? addOn = _db.AddOns.Find(addOnDto.AddOnId);
-                if(addOn == null)
-                    return (null, AddOrderResult.AddOnNotFound);
-                
-                var newOrderItemAddOn = new OrderItemAddOn
-                {
-                    AddOnId = addOn.Id,
-                    Name = addOn.Name,
-                    Price = addOn.Price,
-                    Quantity = addOnDto.Quantity
-                };
-
-                newOrderItem.OrderItemAddOns.Add(newOrderItemAddOn);
-            }
-
-            newOrder.OrderItems.Add(newOrderItem);
-        }
-
-        _db.Orders.Add(newOrder);
-        _db.SaveChanges();
-        return (OrderDtoMapper.MapToDto(newOrder), AddOrderResult.Success);
-  
-    }
 }
