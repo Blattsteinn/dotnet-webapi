@@ -1,10 +1,4 @@
 using FoodOrderingApi.Data;
-using FoodOrderingApi.Dtos.Accounts.Manager;
-using FoodOrderingApi.Dtos.Accounts.Owner;
-using FoodOrderingApi.Mappers;
-using FoodOrderingApi.Models.Places;
-using FoodOrderingApi.Services.Places;
-using Microsoft.EntityFrameworkCore;
 
 namespace FoodOrderingApi.Services.Accounts;
 

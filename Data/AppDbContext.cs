@@ -25,6 +25,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<OrderItemAddOn> OrderItemAddOns => Set<OrderItemAddOn>();
     public DbSet<PlaceOwnership> PlaceOwnerships => Set<PlaceOwnership>();
+    public DbSet<PlaceManager> Managers => Set<PlaceManager>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -71,6 +72,25 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .HasOne(x => x.Owner)
                 .WithMany()
                 .HasForeignKey(x => x.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PlaceManager>(manager =>
+        {
+            // The pair identifies the row: a place may have many managers and a
+            // user may manage many places.
+            manager.HasKey(x => new { x.PlaceId, x.UserId });
+
+            manager
+                .HasOne(x => x.Place)
+                .WithMany()
+                .HasForeignKey(x => x.PlaceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            manager
+                .HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

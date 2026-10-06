@@ -43,6 +43,12 @@ public class OrderService
     private bool OwnerHoldsPlace(string ownerId, int placeId) =>
         _db.PlaceOwnerships.Any(o => o.PlaceId == placeId && o.OwnerId == ownerId);
 
+    // The owner of a place is also a manager of it; on top of that the owner can
+    // add other users as managers through the Managers table.
+    private bool ManagesPlace(string userId, int placeId) =>
+        OwnerHoldsPlace(userId, placeId) ||
+        _db.Managers.Any(m => m.PlaceId == placeId && m.UserId == userId);
+
     // ---------------------------------------------------------------------------
     // ---------------------------------------------------------------------------
     // CUSTOMER SCOPE
@@ -210,10 +216,15 @@ public class OrderService
         return order == null ? null : OrderDtoMapper.MapToDto(order);
     }
 
+    // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // PLACE MANAGER SCOPE
+    // ---------------------------------------------------------------------------
     // The contents of a placed order are immutable; only the status can change.
-    public GetOrderDto? SetStatusForPlace(string ownerId, int placeId, int orderId, OrderStatus status)
+    // The caller may be the owner or one of the place's managers.
+    public GetOrderDto? SetStatusForPlace(string managerId, int placeId, int orderId, OrderStatus status)
     {
-        if (!OwnerHoldsPlace(ownerId, placeId))
+        if (!ManagesPlace(managerId, placeId))
             return null;
 
         Order? order = WithItems()

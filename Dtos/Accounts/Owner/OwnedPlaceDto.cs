@@ -1,4 +1,4 @@
-namespace FoodOrderingApi.Dtos.Accounts.Manager;
+namespace FoodOrderingApi.Dtos.Accounts.Owner;
 
 // Deliberately flat: an owner sees their own places, including hidden ones,
 // but never the identity graph behind them.

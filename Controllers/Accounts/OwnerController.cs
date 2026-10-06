@@ -2,13 +2,13 @@ using System.Security.Claims;
 
 using FoodOrderingApi.Authorization;
 using FoodOrderingApi.Dtos.Orders;
-using FoodOrderingApi.Dtos.Accounts.Manager;
-using FoodOrderingApi.Dtos.Accounts.Owner;
 using FoodOrderingApi.Dtos.Places;
 using FoodOrderingApi.Services.Orders;
 using FoodOrderingApi.Services.Accounts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using FoodOrderingApi.Dtos.Accounts.Admin;
+using FoodOrderingApi.Dtos.Accounts.Owner;
 
 namespace FoodOrderingApi.Controllers.Accounts;
 
@@ -32,6 +32,33 @@ public class OwnerController : ControllerBase
 
     // This finds an user from auth token.
     private string CallerId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+    // The only role this controller delegates. Manager is not an Identity role —
+    // it is a per-place row — so the value is a label, not a claim.
+    private const string ManagerRole = "Manager";
+
+    // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // ADDING USER AS A MANAGER
+    // ---------------------------------------------------------------------------
+    [HttpPatch("places/{placeId}/managers/{userId}/roles")]
+    public IActionResult AssignRole(int placeId, string userId, AssignRoleDto dto)
+    {
+        // Manager is the only role this endpoint hands out; anything else would
+        // be an attempt to escalate through a place the caller merely owns.
+        if (!string.Equals(dto.Role, ManagerRole, StringComparison.OrdinalIgnoreCase))
+            return BadRequest($"Only the '{ManagerRole}' role can be assigned here.");
+
+        ManagerRoleResult result = _ownerService.AddManager(CallerId, placeId, userId);
+        return result switch
+        {
+            ManagerRoleResult.Success       => Ok(new { placeId, userId, role = ManagerRole }),
+            ManagerRoleResult.PlaceNotFound => NotFound("Place does not exist."),
+            ManagerRoleResult.NotTheOwner   => Forbid(),
+            ManagerRoleResult.UserNotFound  => NotFound("User does not exist."),
+            _ => StatusCode(500)
+        };
+    }
 
     // ---------------------------------------------------------------------------
     // ---------------------------------------------------------------------------
@@ -104,19 +131,4 @@ public class OwnerController : ControllerBase
         return Ok(order);
     }
 
-    // The contents of a placed order are immutable; only the OrderStatus can change.
-    [HttpPatch("places/{placeId}/orders/{orderId}/status")]
-    public IActionResult UpdateOrderStatus(int placeId, int orderId, UpdateOrderDto dto)
-    {
-        if (dto.Status == null)
-            return BadRequest("A status is required.");
-
-        GetOrderDto? updated =
-            _orderService.SetStatusForPlace(CallerId, placeId, orderId, dto.Status.Value);
-
-        if (updated == null)
-            return NotFound("Order does not exist for this place.");
-
-        return Ok(updated);
-    }
 }

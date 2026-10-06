@@ -189,6 +189,21 @@ namespace FoodOrderingApi.Migrations
                     b.ToTable("Places");
                 });
 
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.PlaceManager", b =>
+                {
+                    b.Property<int>("PlaceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("PlaceId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Managers");
+                });
+
             modelBuilder.Entity("FoodOrderingApi.Models.Places.PlaceOwnership", b =>
                 {
                     b.Property<int>("Id")
@@ -537,6 +552,25 @@ namespace FoodOrderingApi.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.PlaceManager", b =>
+                {
+                    b.HasOne("FoodOrderingApi.Models.Places.Place", "Place")
+                        .WithMany()
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FoodOrderingApi.Models.Users.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Place");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("FoodOrderingApi.Models.Places.PlaceOwnership", b =>

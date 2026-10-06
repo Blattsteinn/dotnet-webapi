@@ -1,5 +1,4 @@
 using FoodOrderingApi.Data;
-using FoodOrderingApi.Dtos.Accounts.Manager;
 using FoodOrderingApi.Dtos.Accounts.Owner;
 using FoodOrderingApi.Dtos.Places;
 using FoodOrderingApi.Mappers;
@@ -17,6 +16,13 @@ public enum OwnerPlaceResult
     UnknownChildId
 }
 
+public enum ManagerRoleResult
+{
+    Success,
+    PlaceNotFound,
+    NotTheOwner,
+    UserNotFound
+}
 // Every operation here is scoped to one owner id, which the controller always
 // takes from the caller's token — never from the request body.
 public class OwnerService
@@ -110,6 +116,36 @@ public class OwnerService
         return (OwnerPlaceResult.Success, PlaceDtoMapper.MapToGetDto(reloaded));
     }
 
+    // Used by the owner to assign role as a manager.
+    // Manager is a per-place relationship recorded in the Managers table, so the
+    // caller must own the place and the target user must exist.
+    public ManagerRoleResult AddManager(string ownerId, int placeId, string userId)
+    {
+        Place? place = _db.Places
+            .Include(p => p.Ownership)
+            .FirstOrDefault(p => p.Id == placeId);
+
+        if (place == null)
+            return ManagerRoleResult.PlaceNotFound;
+
+        if (place.Ownership?.OwnerId != ownerId)
+            return ManagerRoleResult.NotTheOwner;
+
+        if (!_db.Users.Any(u => u.Id == userId))
+            return ManagerRoleResult.UserNotFound;
+
+        // Idempotent: promoting an existing manager is a no-op.
+        bool alreadyManager = _db.Managers
+            .Any(m => m.PlaceId == placeId && m.UserId == userId);
+
+        if (!alreadyManager)
+        {
+            _db.Managers.Add(new PlaceManager { PlaceId = placeId, UserId = userId });
+            _db.SaveChanges();
+        }
+
+        return ManagerRoleResult.Success;
+    }
     private static OwnedPlaceDto ToDto(Place place) => new(
         place.Id,
         place.Name,
