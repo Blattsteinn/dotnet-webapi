@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace FoodOrderingApi.Dtos.Owner;
+namespace FoodOrderingApi.Dtos.Accounts.Owner;
 
 public record OwnerUpdatePlaceDto(
     [Required]

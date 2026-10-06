@@ -1,4 +1,4 @@
-namespace FoodOrderingApi.Dtos.Users;
+namespace FoodOrderingApi.Dtos.Accounts.User;
 
 public record RegisterDto(
     string Email,

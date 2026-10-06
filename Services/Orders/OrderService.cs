@@ -21,6 +21,12 @@ public enum AddOrderResult
     SingleChoiceAddOnsExceeded,
 }
 
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// TWO SCOPES:
+// 1. Customer
+// 2. Place Owner
+// ---------------------------------------------------------------------------
 public class OrderService
 {
     private readonly AppDbContext _db;
@@ -37,8 +43,10 @@ public class OrderService
     private bool OwnerHoldsPlace(string ownerId, int placeId) =>
         _db.PlaceOwnerships.Any(o => o.PlaceId == placeId && o.OwnerId == ownerId);
 
-    // --------------------------------------------------------------
-    // --- CUSTOMER scope -------------------------------------------
+    // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // CUSTOMER SCOPE
+    // ---------------------------------------------------------------------------
 
     public List<GetOrderDto> GetForUser(string userId)
     {
@@ -172,11 +180,13 @@ public class OrderService
     }
     
 
-    // --------------------------------------------------------------
-    // --- PLACE OWNER scope ----------------------------------------
+    // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // PLACE OWNER SCOPE
+    // ---------------------------------------------------------------------------
 
     // null == the place does not exist, or does not belong to this owner.
-    public List<GetOrderDto>? GetForPlace(string ownerId, int placeId)
+    public List<GetOrderDto>? GetForOwner(string ownerId, int placeId)
     {
         if (!OwnerHoldsPlace(ownerId, placeId))
             return null;
@@ -189,7 +199,7 @@ public class OrderService
             .ToList();
     }
 
-    public GetOrderDto? GetForPlace(string ownerId, int placeId, int orderId)
+    public GetOrderDto? GetForOwner(string ownerId, int placeId, int orderId)
     {
         if (!OwnerHoldsPlace(ownerId, placeId))
             return null;

@@ -3,8 +3,7 @@ using FoodOrderingApi.Data;
 using FoodOrderingApi.Services.Orders;
 using FoodOrderingApi.Services.Places;
 using System.Text.Json.Serialization;
-using FoodOrderingApi.Services.Admin;
-using FoodOrderingApi.Services.Owners;
+using FoodOrderingApi.Services.Accounts;
 
 using FoodOrderingApi.Models.Users;
 
@@ -115,6 +114,7 @@ builder.Services.AddScoped<OrderService>();
 
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<OwnerService>();
+builder.Services.AddScoped<ManagerService>();
 
 
 var app = builder.Build();

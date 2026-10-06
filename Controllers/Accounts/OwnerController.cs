@@ -2,14 +2,15 @@ using System.Security.Claims;
 
 using FoodOrderingApi.Authorization;
 using FoodOrderingApi.Dtos.Orders;
-using FoodOrderingApi.Dtos.Owner;
+using FoodOrderingApi.Dtos.Accounts.Manager;
+using FoodOrderingApi.Dtos.Accounts.Owner;
 using FoodOrderingApi.Dtos.Places;
 using FoodOrderingApi.Services.Orders;
-using FoodOrderingApi.Services.Owners;
+using FoodOrderingApi.Services.Accounts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FoodOrderingApi.Controllers.Owners;
+namespace FoodOrderingApi.Controllers.Accounts;
 
 
 // Conditions for callers:
@@ -29,13 +30,14 @@ public class OwnerController : ControllerBase
         _orderService = orderService;
     }
 
-    // ---------------------------------------------------------------------------
-    // ---------------------------------------------------------------------------
-    // Control actions regarding place
-
-
     // This finds an user from auth token.
     private string CallerId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+    // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // PLACE CONTROL ACTIONS
+    // ---------------------------------------------------------------------------
+    // uses OwnerService.cs
 
     [HttpGet("places")]
     public IActionResult GetMyPlaces()
@@ -77,13 +79,14 @@ public class OwnerController : ControllerBase
     
     // ---------------------------------------------------------------------------
     // ---------------------------------------------------------------------------
-    // Control actions regarding orders
+    // ORDER CONTROL ACTIONS
+    // ---------------------------------------------------------------------------
+    // Uses OrderService.cs
 
-    // GET all the orders from a specific place
     [HttpGet("places/{placeId}/orders")]
     public IActionResult GetOrders(int placeId)
     {
-        List<GetOrderDto>? orders = _orderService.GetForPlace(CallerId, placeId);
+        List<GetOrderDto>? orders = _orderService.GetForOwner(CallerId, placeId);
 
         if (orders == null)
             return NotFound("Place does not exist or is not yours.");
@@ -94,7 +97,7 @@ public class OwnerController : ControllerBase
     [HttpGet("places/{placeId}/orders/{orderId}")]
     public IActionResult GetOrder(int placeId, int orderId)
     {
-        GetOrderDto? order = _orderService.GetForPlace(CallerId, placeId, orderId);
+        GetOrderDto? order = _orderService.GetForOwner(CallerId, placeId, orderId);
         if (order == null)
             return NotFound("Order does not exist for this place.");
 

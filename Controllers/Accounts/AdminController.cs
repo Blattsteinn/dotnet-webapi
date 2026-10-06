@@ -1,14 +1,14 @@
 
-using FoodOrderingApi.Services.Admin;
+using FoodOrderingApi.Services.Accounts;
 using Microsoft.AspNetCore.Mvc;
 
 using FoodOrderingApi.Models.Places;
-using FoodOrderingApi.Dtos.Admin;
+using FoodOrderingApi.Dtos.Accounts.Admin;
 
 using Microsoft.AspNetCore.Authorization;
 using FoodOrderingApi.Authorization;
 
-namespace FoodOrderingApi.Controllers.Admin;
+namespace FoodOrderingApi.Controllers.Accounts;
 
 [ApiController]
 [Route("api/v1/admin")]

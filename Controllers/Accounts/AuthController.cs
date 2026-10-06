@@ -1,4 +1,4 @@
-using FoodOrderingApi.Dtos.Users;
+using FoodOrderingApi.Dtos.Accounts.User;
 using FoodOrderingApi.Models.Users;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +11,7 @@ using System.Linq;
 
 using FoodOrderingApi.Authorization;
 
-namespace FoodOrderingApi.Controllers;
+namespace FoodOrderingApi.Controllers.Accounts;
 
 [ApiController]
 [Route("api/v1/auth")]

@@ -5,7 +5,7 @@ using FoodOrderingApi.Services.Orders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FoodOrderingApi.Controllers.Users;
+namespace FoodOrderingApi.Controllers.Accounts;
 
 // "My orders" — every route here is scoped to the caller's own id, which comes
 // from the token and never from the URL, so a customer can only ever read their

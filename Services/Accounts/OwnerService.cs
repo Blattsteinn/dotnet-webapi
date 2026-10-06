@@ -1,12 +1,13 @@
 using FoodOrderingApi.Data;
-using FoodOrderingApi.Dtos.Owner;
+using FoodOrderingApi.Dtos.Accounts.Manager;
+using FoodOrderingApi.Dtos.Accounts.Owner;
 using FoodOrderingApi.Dtos.Places;
 using FoodOrderingApi.Mappers;
 using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Services.Places;
 using Microsoft.EntityFrameworkCore;
 
-namespace FoodOrderingApi.Services.Owners;
+namespace FoodOrderingApi.Services.Accounts;
 
 public enum OwnerPlaceResult
 {

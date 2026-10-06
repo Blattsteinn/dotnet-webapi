@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 
-namespace FoodOrderingApi.Services.Admin;
+namespace FoodOrderingApi.Services.Accounts;
 
 public enum AdminRoleResult
 {

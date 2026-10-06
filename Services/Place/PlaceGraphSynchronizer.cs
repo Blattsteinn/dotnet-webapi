@@ -1,5 +1,5 @@
 using FoodOrderingApi.Data;
-using FoodOrderingApi.Dtos.Owner;
+using FoodOrderingApi.Dtos.Accounts.Owner;
 using FoodOrderingApi.Models.Places;
 
 namespace FoodOrderingApi.Services.Places;
