@@ -1,13 +1,11 @@
 using FoodOrderingApi.Data;
 
 using FoodOrderingApi.Dtos.Accounts.Admin;
-using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Models.Users;
 
 using FoodOrderingApi.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using FoodOrderingApi.Dtos.Places;
 
 
 namespace FoodOrderingApi.Services.Accounts;
@@ -16,15 +14,9 @@ public enum AdminRoleResult
 {
     Success,
     UserNotFound,
-    UnknownRole,
+    RoleNotAllowed,
     NotInRole,
     Failed
-}
-
-public enum AdminVisibilityResult
-{
-    Success,
-    PlaceNotFound
 }
 
 public class AdminService
@@ -38,31 +30,45 @@ public class AdminService
         _userManager = userManager;
     }
 
-    public bool DeletePlace(int id)
-    {
-        Place? place = _db.Places.Find(id);
-        if (place == null)
-            return false;
-        
-        _db.Places.Remove(place);
-        _db.SaveChanges();
-        return true;
+    // -------------------------------------------------------------------
+    // -- Finding a user -------------------------------------------------
 
+    // Returns id + email only: enough to pick the person to promote, and
+    // nothing else about the account.
+    public async Task<List<AdminUserDto>> GetUsersAsync(string? search)
+    {
+        IQueryable<ApplicationUser> users = _db.Users;
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            // SQLite's LIKE is case-insensitive (unlike Contains, which becomes a
+            // case-sensitive instr), and the escaped pattern keeps a literal % or
+            // _ in the search from behaving as a wildcard.
+            var pattern = $"%{EscapeLikePattern(search.Trim())}%";
+            users = users.Where(u => u.Email != null && EF.Functions.Like(u.Email, pattern, "\\"));
+        }
+
+        return await users
+            .OrderBy(u => u.Email)
+            .ThenBy(u => u.Id)
+            .Select(u => new AdminUserDto(u.Id, u.Email))
+            .ToListAsync();
     }
 
-    // -------------------------------------------------------------------
-    // -- Roles ----------------------------------------------------------
-
+    // ---------------------------------------------------
+    // --- Roles -----------------------------------------
 
     // --------------------------------------
-    // -- Granting owner role ---------------
+    // --- Granting owner role ---
 
-    // Only promotes an User to Owner role. Does not have side affects
+    // Side effects:
+    // 1. unlocks the /api/v1/owner endpoints for that user
+
     public async Task<AdminRoleResult> AssignRoleAsync(string userId, string role)
     {
-        var known = MatchKnownRole(role);
+        var known = MatchGrantableRole(role);
         if (known == null)
-            return AdminRoleResult.UnknownRole;
+            return AdminRoleResult.RoleNotAllowed;
 
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
@@ -81,7 +87,7 @@ public class AdminService
     }
 
     // --------------------------------------
-    // -- Revoking owner role ---------------
+    // --- Revoking owner role ---
 
     // Side effects:
     // 1. Demotes Owner to a regular User
@@ -91,9 +97,9 @@ public class AdminService
 
     public async Task<AdminRoleResult> RemoveRoleAsync(string userId, string role)
     {
-        var known = MatchKnownRole(role);
+        var known = MatchGrantableRole(role);
         if (known == null)
-            return AdminRoleResult.UnknownRole;
+            return AdminRoleResult.RoleNotAllowed;
 
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
@@ -145,6 +151,9 @@ public class AdminService
         _db.SaveChanges();
     }
 
-    private static string? MatchKnownRole(string role) =>
-        Roles.All.FirstOrDefault(r => string.Equals(r, role, StringComparison.OrdinalIgnoreCase));
+    private static string? MatchGrantableRole(string role) =>
+        string.Equals(role, Roles.Owner, StringComparison.OrdinalIgnoreCase) ? Roles.Owner : null;
+
+    private static string EscapeLikePattern(string value) =>
+        value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 }

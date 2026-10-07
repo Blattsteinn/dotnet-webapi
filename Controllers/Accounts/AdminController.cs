@@ -2,12 +2,10 @@
 using FoodOrderingApi.Services.Accounts;
 using Microsoft.AspNetCore.Mvc;
 
-using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Dtos.Accounts.Admin;
 
 using Microsoft.AspNetCore.Authorization;
 using FoodOrderingApi.Authorization;
-using FoodOrderingApi.Dtos.Places;
 
 namespace FoodOrderingApi.Controllers.Accounts;
 
@@ -22,27 +20,23 @@ public class AdminController : ControllerBase
         _adminService = adminService;
     }
 
-    // Let admin delete a place
-    [HttpDelete("places/{id}")]
-    public IActionResult DeletePlace(int id)
+    [HttpGet("users")]
+    public async Task<IActionResult> GetUsers([FromQuery] string? search)
     {
-        bool exists = _adminService.DeletePlace(id);
-        if(!exists)
-            return NotFound();
-
-        return NoContent();
+        List<AdminUserDto> users = await _adminService.GetUsersAsync(search);
+        return Ok(users);
     }
 
-    // -------------------------------------------------------------------
-    // -- Roles ----------------------------------------------------------
+    // ---------------------------------------------------
+    // --- Roles -----------------------------------------
 
-    // # WARNING: do NOT revoke the Admin role from Admin account.
-    // # Can only be re-grant directly in the database then.
+    // The only role that can be granted/taken out here is Owner. 
+    // Admin role is not grantable.
     
-    // ----------------------------------------------
-    // -- Granting owner role -----------------------
+    // ---------------------------------------------------
+    // -- Granting owner role --
 
-    // Promoting a user to Owner unlocks the /api/v1/owner endpoints for that user.
+    // unlocks the /api/v1/owner endpoints for that user.
 
     [HttpPost("users/{userId}/roles")]
     public async Task<IActionResult> AssignRole(string userId, AssignRoleDto dto)
@@ -50,15 +44,15 @@ public class AdminController : ControllerBase
         AdminRoleResult result = await _adminService.AssignRoleAsync(userId, dto.Role);
         return result switch
         {
-            AdminRoleResult.Success      => Ok(new { userId, role = dto.Role }),
+            AdminRoleResult.Success      => Ok(new { userId, role = Roles.Owner }),
             AdminRoleResult.UserNotFound => NotFound("User does not exist."),
-            AdminRoleResult.UnknownRole  => BadRequest("Unknown role. Allowed: Admin, Owner."),
+            AdminRoleResult.RoleNotAllowed => BadRequest($"Only the '{Roles.Owner}' role can be granted here."),
             _ => StatusCode(500)
         };
     }
 
-    // ----------------------------------------------
-    // -- Revoking owner role -----------------------
+    // ---------------------------------------------------
+    // -- Revoking owner role --
 
     // This also hides every place that user owned &&
     // clears those places' manager list.
@@ -71,7 +65,7 @@ public class AdminController : ControllerBase
         {
             AdminRoleResult.Success      => NoContent(),
             AdminRoleResult.UserNotFound => NotFound("User does not exist."),
-            AdminRoleResult.UnknownRole  => BadRequest("Unknown role. Allowed: Admin, Owner."),
+            AdminRoleResult.RoleNotAllowed => BadRequest($"Only the '{Roles.Owner}' role can be revoked here."),
             AdminRoleResult.NotInRole    => BadRequest("User does not have that role."),
             _ => StatusCode(500)
         };
