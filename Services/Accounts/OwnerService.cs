@@ -177,6 +177,24 @@ public class OwnerService
         return ManagerRoleResult.Success;
     }
 
+    // Mirrors AddManager/RemoveManager: null == the place does not exist or is
+    // not this owner's.
+    public List<ManagerDto>? GetManagers(string ownerId, int placeId)
+    {
+        Place? place = _db.Places
+            .Include(p => p.Ownership)
+            .FirstOrDefault(p => p.Id == placeId);
+
+        if (place == null || place.Ownership?.OwnerId != ownerId)
+            return null;
+
+        return _db.Managers
+            .Where(m => m.PlaceId == placeId)
+            .OrderBy(m => m.UserId)
+            .Select(m => new ManagerDto(m.UserId, m.User.UserName, m.User.Email))
+            .ToList();
+    }
+
     private static OwnedPlaceDto ToDto(Place place) => new(
         place.Id,
         place.Name,

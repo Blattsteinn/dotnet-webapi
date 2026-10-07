@@ -33,9 +33,19 @@ public class OwnerController : ControllerBase
 
     // ---------------------------------------------------------------------------
     // ---------------------------------------------------------------------------
-    // ADDING / REMOVING USER AS A MANAGER
+    // ADDING / REMOVING / LISTING USERS AS MANAGERS
     // ---------------------------------------------------------------------------
     // uses OwnerService.cs
+
+    [HttpGet("places/{placeId}/managers")]
+    public IActionResult GetManagers(int placeId)
+    {
+        List<ManagerDto>? managers = _ownerService.GetManagers(CallerId, placeId);
+        if (managers == null)
+            return NotFound("Place does not exist or is not yours.");
+
+        return Ok(managers);
+    }
 
     [HttpPatch("places/{placeId}/managers/{userId}/roles")]
     public IActionResult AssignRole(int placeId, string userId, AssignRoleDto dto)
