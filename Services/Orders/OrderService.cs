@@ -197,13 +197,13 @@ public class OrderService
 
     // ---------------------------------------------------------------------------
     // ---------------------------------------------------------------------------
-    // PLACE OWNER SCOPE
+    // MANAGER & OWNER ORDER VIEW
     // ---------------------------------------------------------------------------
 
-    // null == the place does not exist, or does not belong to this owner.
-    public List<GetOrderDto>? GetForOwner(string ownerId, int placeId)
+    // null == the place does not exist, or is not managed by this caller.
+    public List<GetOrderDto>? GetForPlace(string callerId, bool callerIsOwner, int placeId)
     {
-        if (!OwnerHoldsPlace(ownerId, placeId))
+        if (!ManagesPlace(callerId, callerIsOwner, placeId))
             return null;
 
         return WithItems()
@@ -214,9 +214,9 @@ public class OrderService
             .ToList();
     }
 
-    public GetOrderDto? GetForOwner(string ownerId, int placeId, int orderId)
+    public GetOrderDto? GetForPlace(string callerId, bool callerIsOwner, int placeId, int orderId)
     {
-        if (!OwnerHoldsPlace(ownerId, placeId))
+        if (!ManagesPlace(callerId, callerIsOwner, placeId))
             return null;
 
         Order? order = WithItems()

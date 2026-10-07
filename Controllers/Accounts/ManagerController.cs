@@ -32,6 +32,7 @@ public class ManagerController : ControllerBase
     // This finds an user from auth token.
     private string CallerId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
+    
     // ---------------------------------------------------------------------------
     // ---------------------------------------------------------------------------
     // CHANGING ORDER STATUS
@@ -56,5 +57,33 @@ public class ManagerController : ControllerBase
             SetOrderStatusResult.Success => Ok(updated),
             _ => StatusCode(500)
         };
+    }
+
+    // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // MANAGER & OWNER ORDER VIEW
+    // ---------------------------------------------------------------------------
+    // The owner counts as a manager of their place, so both the owner and anyone
+    // the owner added to the Managers table can view the place's orders.
+
+    [HttpGet("places/{placeId}/orders")]
+    public IActionResult GetOrders(int placeId)
+    {
+        List<GetOrderDto>? orders = _orderService.GetForPlace(CallerId, User.IsOwner(), placeId);
+
+        if (orders == null)
+            return NotFound("Place does not exist or is not yours.");
+
+        return Ok(orders);
+    }
+
+    [HttpGet("places/{placeId}/orders/{orderId}")]
+    public IActionResult GetOrder(int placeId, int orderId)
+    {
+        GetOrderDto? order = _orderService.GetForPlace(CallerId, User.IsOwner(), placeId, orderId);
+        if (order == null)
+            return NotFound("Order does not exist for this place.");
+
+        return Ok(order);
     }
 }

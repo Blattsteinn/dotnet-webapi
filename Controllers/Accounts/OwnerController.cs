@@ -1,9 +1,7 @@
 using System.Security.Claims;
 
 using FoodOrderingApi.Authorization;
-using FoodOrderingApi.Dtos.Orders;
 using FoodOrderingApi.Dtos.Places;
-using FoodOrderingApi.Services.Orders;
 using FoodOrderingApi.Services.Accounts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,12 +20,10 @@ namespace FoodOrderingApi.Controllers.Accounts;
 public class OwnerController : ControllerBase
 {
     private readonly OwnerService _ownerService;
-    private readonly OrderService _orderService;
 
-    public OwnerController(OwnerService ownerService, OrderService orderService)
+    public OwnerController(OwnerService ownerService)
     {
         _ownerService = ownerService;
-        _orderService = orderService;
     }
 
     // This finds an user from auth token.
@@ -118,32 +114,4 @@ public class OwnerController : ControllerBase
             _ => StatusCode(500)
         };
     }
-    
-    // ---------------------------------------------------------------------------
-    // ---------------------------------------------------------------------------
-    // ORDER CONTROL ACTIONS
-    // ---------------------------------------------------------------------------
-    // Uses OrderService.cs
-
-    [HttpGet("places/{placeId}/orders")]
-    public IActionResult GetOrders(int placeId)
-    {
-        List<GetOrderDto>? orders = _orderService.GetForOwner(CallerId, placeId);
-
-        if (orders == null)
-            return NotFound("Place does not exist or is not yours.");
-
-        return Ok(orders);
-    }
-
-    [HttpGet("places/{placeId}/orders/{orderId}")]
-    public IActionResult GetOrder(int placeId, int orderId)
-    {
-        GetOrderDto? order = _orderService.GetForOwner(CallerId, placeId, orderId);
-        if (order == null)
-            return NotFound("Order does not exist for this place.");
-
-        return Ok(order);
-    }
-
 }

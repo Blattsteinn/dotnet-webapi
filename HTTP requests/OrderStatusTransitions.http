@@ -237,7 +237,7 @@ Content-Type: application/json
 
 ### 1.6 Read back — the order is Completed
 # Expect: 200, "status": 4
-GET {{host}}/api/v1/owner/places/{{placeId}}/orders/{{orderAId}}
+GET {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderAId}}
 Authorization: Bearer {{ownerToken}}
 Accept: application/json
 
@@ -324,7 +324,7 @@ Content-Type: application/json
 
 ### 2.6 The rejected moves changed nothing — still Pending
 # Expect: 200, "status": 0
-GET {{host}}/api/v1/owner/places/{{placeId}}/orders/{{orderBId}}
+GET {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderBId}}
 Authorization: Bearer {{ownerToken}}
 Accept: application/json
 
@@ -387,7 +387,7 @@ Content-Type: application/json
 
 ### 3.6 Still Preparing
 # Expect: 200, "status": 2
-GET {{host}}/api/v1/owner/places/{{placeId}}/orders/{{orderCId}}
+GET {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderCId}}
 Authorization: Bearer {{ownerToken}}
 Accept: application/json
 
