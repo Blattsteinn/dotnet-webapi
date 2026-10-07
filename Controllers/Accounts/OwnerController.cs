@@ -62,10 +62,17 @@ public class OwnerController : ControllerBase
     public IActionResult RemoveRole(int placeId, string userId, AssignRoleDto dto)
     {
         if (!string.Equals(dto.Role, ManagerRole, StringComparison.OrdinalIgnoreCase))
-            return BadRequest($"Only the '{ManagerRole}' role can be assigned here.");
+            return BadRequest($"Only the '{ManagerRole}' role can be removed here.");
 
-        int result = _ownerService.RemoveManager(CallerId, placeId, userId);
-        return Ok(result);
+        ManagerRoleResult result = _ownerService.RemoveManager(CallerId, placeId, userId);
+        return result switch
+        {
+            ManagerRoleResult.Success       => NoContent(),
+            ManagerRoleResult.PlaceNotFound => NotFound("Place does not exist."),
+            ManagerRoleResult.NotTheOwner   => Forbid(),
+            ManagerRoleResult.UserNotFound  => NotFound("User does not exist."),
+            _ => StatusCode(500)
+        };
     }
 
     // ---------------------------------------------------------------------------

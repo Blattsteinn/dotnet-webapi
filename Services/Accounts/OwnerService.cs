@@ -50,7 +50,6 @@ public class OwnerService
             .ToList();
     }
 
-    // Returns null when the place is missing OR when it belongs to someone
     public GetPlaceDto? GetPlace(string ownerId, int placeId)
     {
         Place? place = _db.Places
@@ -116,9 +115,12 @@ public class OwnerService
         return (OwnerPlaceResult.Success, PlaceDtoMapper.MapToGetDto(reloaded));
     }
 
-    // Used by the owner to assign role as a manager.
-    // Manager is a per-place relationship recorded in the Managers table, so the
-    // caller must own the place and the target user must exist.
+    // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // ADDING / REMOVING USER AS A MANAGER
+    // ---------------------------------------------------------------------------
+
+
     public ManagerRoleResult AddManager(string ownerId, int placeId, string userId)
     {
         Place? place = _db.Places
@@ -147,9 +149,32 @@ public class OwnerService
         return ManagerRoleResult.Success;
     }
 
-    public int RemoveManager(string ownerId, int placeId, string userId)
+    // Mirrors AddManager: 
+    public ManagerRoleResult RemoveManager(string ownerId, int placeId, string userId)
     {
-        return -1; 
+        Place? place = _db.Places
+            .Include(p => p.Ownership)
+            .FirstOrDefault(p => p.Id == placeId);
+
+        if (place == null)
+            return ManagerRoleResult.PlaceNotFound;
+
+        if (place.Ownership?.OwnerId != ownerId)
+            return ManagerRoleResult.NotTheOwner;
+
+        if (!_db.Users.Any(u => u.Id == userId))
+            return ManagerRoleResult.UserNotFound;
+
+        PlaceManager? manager = _db.Managers
+            .FirstOrDefault(m => m.PlaceId == placeId && m.UserId == userId);
+
+        if (manager != null)
+        {
+            _db.Managers.Remove(manager);
+            _db.SaveChanges();
+        }
+
+        return ManagerRoleResult.Success;
     }
 
     private static OwnedPlaceDto ToDto(Place place) => new(
@@ -160,3 +185,4 @@ public class OwnerService
         place.Longtitude,
         place.Hidden);
 }
+
