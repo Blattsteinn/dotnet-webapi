@@ -58,6 +58,11 @@ public static class PlaceGraphSynchronizer
         place.Address     = dto.Address;
         place.Hidden      = dto.Hidden;
 
+        // Unlike Hidden, an omitted acceptingOrders must NOT reset the stored
+        // value — it is a separate switch the owner may not be touching.
+        if (dto.AcceptingOrders is bool acceptingOrders)
+            place.AcceptingOrders = acceptingOrders;
+
         SyncCategories(db, place, dto.ProductCategories);
     }
 

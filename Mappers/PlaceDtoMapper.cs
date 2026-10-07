@@ -10,7 +10,7 @@ public static class PlaceDtoMapper
             // .Include(o => o.OrderItems)
             // .ThenInclude(oi => oi.OrderItemAddOns)
             // .FirstOrDefault(o => o.Id  == id);
-    public static PlaceSummaryDto MapToSummaryDto(Place place)
+    public static PlaceSummaryDto MapToSummaryDto(Place place, bool isOpen)
         {
             return new PlaceSummaryDto(
                 Id: place.Id,
@@ -19,13 +19,15 @@ public static class PlaceDtoMapper
                 Address: place.Address,
                 Latitude: place.Latitude,
                 Longtitude: place.Longtitude,
-                Hidden: place.Hidden
+                AcceptingOrders: place.AcceptingOrders,
+                IsOpen: isOpen,
+                OpeningHours: MapHours(place)
             );
         }
 
-    public static GetPlaceDto MapToGetDto(Place place)
+    public static PrivatePlaceDto MapToPrivateDto(Place place, bool isOpen)
         {
-            return new GetPlaceDto(
+            return new PrivatePlaceDto(
                 Id: place.Id,
                 Latitude: place.Latitude,
                 Longtitude: place.Longtitude,
@@ -33,23 +35,53 @@ public static class PlaceDtoMapper
                 Description: place.Description,
                 Address: place.Address,
                 Hidden: place.Hidden,
-                ProductCategories: place.ProductCategories
-                    .Select(category => new ProductCategoriesDetailDto(
-                        Id: category.Id,
-                        Name: category.Name,
-                        Hidden: category.Hidden,
-                        Products: category.Products
-                            .Select(product => new ProductSummaryDto(
-                                Id: product.Id,
-                                Name: product.Name,
-                                Hidden: product.Hidden,
-                                Description: product.Description,
-                                Price: product.Price
-                            ))
-                            .ToList()
-                    ))
-                    .ToList()
+                AcceptingOrders: place.AcceptingOrders,
+                IsOpen: isOpen,
+                OpeningHours: MapHours(place),
+                ProductCategories: MapCategories(place)
             );
         }
+
+    public static PublicPlaceDto MapToPublicDto(Place place, bool isOpen)
+        {
+            return new PublicPlaceDto(
+                Id: place.Id,
+                Latitude: place.Latitude,
+                Longtitude: place.Longtitude,
+                Name: place.Name,
+                Description: place.Description,
+                Address: place.Address,
+                AcceptingOrders: place.AcceptingOrders,
+                IsOpen: isOpen,
+                OpeningHours: MapHours(place),
+                ProductCategories: MapCategories(place)
+            );
+        }
+
+    // Ordered so the schedule reads like a week: day first, then opening time.
+    public static List<OpeningHourDto> MapHours(Place place) =>
+        place.OpeningHours
+            .OrderBy(hour => hour.Day)
+            .ThenBy(hour => hour.OpensAt)
+            .Select(hour => new OpeningHourDto(hour.Day, hour.OpensAt, hour.ClosesAt))
+            .ToList();
+
+    private static List<ProductCategoriesDetailDto> MapCategories(Place place) =>
+        place.ProductCategories
+            .Select(category => new ProductCategoriesDetailDto(
+                Id: category.Id,
+                Name: category.Name,
+                Hidden: category.Hidden,
+                Products: category.Products
+                    .Select(product => new ProductSummaryDto(
+                        Id: product.Id,
+                        Name: product.Name,
+                        Hidden: product.Hidden,
+                        Description: product.Description,
+                        Price: product.Price
+                    ))
+                    .ToList()
+            ))
+            .ToList();
 }
     

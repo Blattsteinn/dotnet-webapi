@@ -5,10 +5,24 @@ namespace FoodOrderingApi.Dtos.Places;
 // Join tables before using:
         // var place = _db.Places
             // .Include(p => p.ProductCategories)
-            // .ThenInclude(p => p.Products)
+            // .ThenInclude(pc => pc.Products)
             // .FirstOrDefault(p => p.Id == id);
 
-public record GetPlaceDto(
+// Flat read model for the public place.
+public record PlaceSummaryDto(
+    int Id,
+    string Name,
+    string? Description,
+    string? Address,
+    double Latitude,
+    double Longtitude,
+    bool AcceptingOrders,
+    bool IsOpen,
+    List<OpeningHourDto> OpeningHours
+);
+
+// Owner/admin read model for a single place.
+public record PrivatePlaceDto(
     int Id,
     double Latitude,
     double Longtitude,
@@ -16,7 +30,24 @@ public record GetPlaceDto(
     string? Description,
     string? Address,
     bool Hidden,
-    List <ProductCategoriesDetailDto> ProductCategories
+    bool AcceptingOrders,
+    bool IsOpen,
+    List<OpeningHourDto> OpeningHours,
+    List<ProductCategoriesDetailDto> ProductCategories
+);
+
+// Public read model for a single place.
+public record PublicPlaceDto(
+    int Id,
+    double Latitude,
+    double Longtitude,
+    string Name,
+    string? Description,
+    string? Address,
+    bool AcceptingOrders,
+    bool IsOpen,
+    List<OpeningHourDto> OpeningHours,
+    List<ProductCategoriesDetailDto> ProductCategories
 );
 
 public record ProductCategoriesDetailDto(

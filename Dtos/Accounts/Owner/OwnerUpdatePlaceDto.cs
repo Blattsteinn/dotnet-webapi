@@ -20,7 +20,11 @@ public record OwnerUpdatePlaceDto(
     string? Address,
 
     bool Hidden,
-    
+
+    // Nullable on purpose: when omitted the stored value is left unchanged,
+    // so a schedule-only or graph-only update cannot silently reset it.
+    bool? AcceptingOrders,
+
     List<OwnerUpdateCategoryDto> ProductCategories
 );
 

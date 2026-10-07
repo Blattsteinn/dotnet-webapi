@@ -28,7 +28,7 @@ public class PlaceController : ControllerBase
     [HttpGet("{id}")]
     public IActionResult Get(int id)
     {
-        GetPlaceDto? place = _placeService.Get(id);
+        PublicPlaceDto? place = _placeService.Get(id);
         if (place == null)
         {
             return NotFound("Place does not exist.");

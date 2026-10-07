@@ -41,6 +41,7 @@ public class AdminService
     {
         List<Place> places = _db.Places
             .Include(p => p.Ownership)
+            .Include(p => p.OpeningHours)
             .ToList();
         return places;
     }
@@ -49,6 +50,7 @@ public class AdminService
     {   
         Place? place = _db.Places
             .Include(p => p.Ownership)
+            .Include(p => p.OpeningHours)
             .Include(p => p.ProductCategories)
             .ThenInclude(pc => pc.Products)
             .ThenInclude(p => p.AddOnCategories)

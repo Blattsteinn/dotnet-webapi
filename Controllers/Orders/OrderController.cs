@@ -28,12 +28,13 @@ public class OrderController : ControllerBase
         return result switch
         {
             AddOrderResult.PlaceNotFound => NotFound("Specified place does not exist."),
+            AddOrderResult.PlaceClosed => Conflict("The place is currently closed and is not accepting orders."),
             AddOrderResult.ZeroProducts => BadRequest("Your request didn't specify any produts."),
             AddOrderResult.ProductNotFound => NotFound("Request specified product ID/s that do not exist."),
             AddOrderResult.AddOnNotFound => NotFound("Request specified add on ID/s that do not exist."),
             AddOrderResult.RequiredAddOnsNotSpecified => BadRequest("Your order add ons do not have the required ones."),
             AddOrderResult.SingleChoiceAddOnsExceeded => BadRequest("Your order add ons include more than one option from a single-choice category."),
-            AddOrderResult.Success => Ok(newOrder),
+            AddOrderResult.Success => Created($"/api/v1/orders/{newOrder!.Id}", newOrder),
              _ =>  StatusCode(500)
         };
     }

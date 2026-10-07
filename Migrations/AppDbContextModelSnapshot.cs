@@ -166,6 +166,9 @@ namespace FoodOrderingApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("AcceptingOrders")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Address")
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
@@ -206,6 +209,31 @@ namespace FoodOrderingApi.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Managers");
+                });
+
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.PlaceOpeningHour", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<TimeOnly>("ClosesAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Day")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<TimeOnly>("OpensAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PlaceId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlaceId");
+
+                    b.ToTable("PlaceOpeningHours");
                 });
 
             modelBuilder.Entity("FoodOrderingApi.Models.Places.PlaceOwnership", b =>
@@ -577,6 +605,17 @@ namespace FoodOrderingApi.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FoodOrderingApi.Models.Places.PlaceOpeningHour", b =>
+                {
+                    b.HasOne("FoodOrderingApi.Models.Places.Place", "Place")
+                        .WithMany("OpeningHours")
+                        .HasForeignKey("PlaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Place");
+                });
+
             modelBuilder.Entity("FoodOrderingApi.Models.Places.PlaceOwnership", b =>
                 {
                     b.HasOne("FoodOrderingApi.Models.Users.ApplicationUser", "Owner")
@@ -686,6 +725,8 @@ namespace FoodOrderingApi.Migrations
 
             modelBuilder.Entity("FoodOrderingApi.Models.Places.Place", b =>
                 {
+                    b.Navigation("OpeningHours");
+
                     b.Navigation("Ownership");
 
                     b.Navigation("ProductCategories");

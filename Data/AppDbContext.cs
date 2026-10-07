@@ -26,6 +26,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<OrderItemAddOn> OrderItemAddOns => Set<OrderItemAddOn>();
     public DbSet<PlaceOwnership> PlaceOwnerships => Set<PlaceOwnership>();
     public DbSet<PlaceManager> Managers => Set<PlaceManager>();
+    public DbSet<PlaceOpeningHour> PlaceOpeningHours => Set<PlaceOpeningHour>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -91,6 +92,15 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .HasOne(x => x.User)
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PlaceOpeningHour>(openingHour =>
+        {
+            openingHour
+                .HasOne(x => x.Place)
+                .WithMany(p => p.OpeningHours)
+                .HasForeignKey(x => x.PlaceId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

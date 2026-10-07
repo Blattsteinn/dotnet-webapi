@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 using FoodOrderingApi.Models.Places;
 
 namespace FoodOrderingApi.Data;
@@ -6,9 +8,111 @@ public static class DbSeeder
 {
     public static void Seed(AppDbContext db)
     {
-        if (db.Places.Any())
-            return;
+        // The demo catalogue is written once, into an empty database.
+        if (!db.Places.Any())
+            SeedCatalogue(db);
 
+        // Opening hours (and the 24h place that belongs with them) are filled in
+        // whenever they are missing, so a database created before this feature
+        // still ends up with the test fixtures. Gaps are only ever filled: an
+        // owner's later edits are never overwritten.
+        SeedOpeningHoursFixtures(db);
+    }
+
+    // ── Opening-hours fixtures ─────────────────────────────────────────────
+    //
+    // Three demo places, each with one job:
+    //   Pizza Palace   — a normal week plus an overnight leg (a place that has
+    //                    a schedule to look at)
+    //   Burger Joint   — no rows at all, so it is permanently closed (proves
+    //                    "no hours means closed")
+    //   All Night Kebab— 24h every day, so it is always open and can be ordered
+    //                    from at any hour. The Development owner (Program.cs)
+    //                    owns it, so the /owner routes have something to edit.
+    //
+    // "OpeningHours.http" drives these fixtures.
+    private static void SeedOpeningHoursFixtures(AppDbContext db)
+    {
+        Place? pizzaPalace = db.Places
+            .Include(p => p.OpeningHours)
+            .FirstOrDefault(p => p.Name == "Pizza Palace");
+
+        if (pizzaPalace != null && pizzaPalace.OpeningHours.Count == 0)
+        {
+            pizzaPalace.OpeningHours.AddRange(
+            [
+                Hour(DayOfWeek.Monday,    11, 0, 22, 0),
+                Hour(DayOfWeek.Tuesday,   11, 0, 22, 0),
+                Hour(DayOfWeek.Wednesday, 11, 0, 22, 0),
+                Hour(DayOfWeek.Thursday,  11, 0, 22, 0),
+                // Friday and Saturday run past midnight: the row belongs to the
+                // day it opens.
+                Hour(DayOfWeek.Friday,    11, 0,  2, 0),
+                Hour(DayOfWeek.Saturday,  12, 0,  2, 0),
+                Hour(DayOfWeek.Sunday,    12, 0, 21, 0),
+            ]);
+        }
+
+        // Burger Joint is deliberately left without hours.
+
+        Place? kebab = db.Places
+            .Include(p => p.OpeningHours)
+            .FirstOrDefault(p => p.Name == "All Night Kebab");
+
+        if (kebab == null)
+        {
+            db.Places.Add(BuildAllNightKebab());
+        }
+        else if (kebab.OpeningHours.Count == 0)
+        {
+            kebab.OpeningHours.AddRange(Open24HoursEveryDay());
+        }
+
+        db.SaveChanges();
+    }
+
+    private static Place BuildAllNightKebab()
+    {
+        var kebabs = new ProductCategory { Name = "Kebabs", Hidden = false };
+        kebabs.Products.Add(new Product
+        {
+            Name = "Kebab",
+            Description = "Your 3am friend",
+            Price = 6.50m,
+            Hidden = false,
+            ProductCategory = kebabs
+        });
+
+        var place = new Place
+        {
+            Name = "All Night Kebab",
+            Latitude = 54.6872,
+            Longtitude = 25.2797,
+            Description = "Open 24 hours — the always-open ordering fixture",
+            Address = "3 Kebab Lane, Vilnius"
+        };
+
+        place.ProductCategories.Add(kebabs);
+        place.OpeningHours.AddRange(Open24HoursEveryDay());
+
+        return place;
+    }
+
+    // 00:00-00:00 is the "open 24 hours" interval, one row per day.
+    private static IEnumerable<PlaceOpeningHour> Open24HoursEveryDay() =>
+        Enum.GetValues<DayOfWeek>().Select(day => Hour(day, 0, 0, 0, 0));
+
+    private static PlaceOpeningHour Hour(
+        DayOfWeek day, int opensHour, int opensMinute, int closesHour, int closesMinute) =>
+        new()
+        {
+            Day = day,
+            OpensAt = new TimeOnly(opensHour, opensMinute),
+            ClosesAt = new TimeOnly(closesHour, closesMinute)
+        };
+
+    private static void SeedCatalogue(AppDbContext db)
+    {
         // ── Place 1: Pizza Palace ──────────────────────────────────────────
         var pizzaPalace = new Place
         {

@@ -23,38 +23,44 @@ public enum ManagerRoleResult
     NotTheOwner,
     UserNotFound
 }
+
+public enum OwnerHoursResult
+{
+    Success,
+    PlaceNotFound,
+    InvalidSchedule
+}
+
 // Every operation here is scoped to one owner id, which the controller always
 // takes from the caller's token — never from the request body.
 public class OwnerService
 {
     private readonly AppDbContext _db;
+    private readonly PlaceScheduleService _schedule;
 
-    public OwnerService(AppDbContext db)
+    public OwnerService(AppDbContext db, PlaceScheduleService schedule)
     {
         _db = db;
+        _schedule = schedule;
     }
 
     // Owners rows are the source of truth
     public List<OwnedPlaceDto> GetOwnedPlaces(string ownerId)
     {
         return _db.Places
+            .Include(p => p.OpeningHours)
             .Where(p => p.Ownership != null && p.Ownership.OwnerId == ownerId)
             .OrderBy(p => p.Id)
-            .Select(p => new OwnedPlaceDto(
-                p.Id,
-                p.Name,
-                p.Description,
-                p.Address,
-                p.Latitude,
-                p.Longtitude,
-                p.Hidden))
+            .ToList()
+            .Select(ToDto)
             .ToList();
     }
 
-    public GetPlaceDto? GetPlace(string ownerId, int placeId)
+    public PrivatePlaceDto? GetPlace(string ownerId, int placeId)
     {
         Place? place = _db.Places
             .Include(p => p.Ownership)
+            .Include(p => p.OpeningHours)
             .Include(p => p.ProductCategories)
                 .ThenInclude(pc => pc.Products)
             .FirstOrDefault(p => p.Id == placeId);
@@ -62,7 +68,7 @@ public class OwnerService
         if (place == null || place.Ownership?.OwnerId != ownerId)
             return null;
 
-        return PlaceDtoMapper.MapToGetDto(place);
+        return PlaceDtoMapper.MapToPrivateDto(place, _schedule.IsOpen(place));
     }
 
     public OwnedPlaceDto CreatePlace(string ownerId, CreatePlaceDto dto)
@@ -85,10 +91,11 @@ public class OwnerService
 
     // The permission question here is per place — "does this person own THIS
     // row?" — not global. The Owner role only got them through the door.
-    public (OwnerPlaceResult, GetPlaceDto?) UpdatePlace(string ownerId, int placeId, OwnerUpdatePlaceDto dto)
+    public (OwnerPlaceResult, PrivatePlaceDto?) UpdatePlace(string ownerId, int placeId, OwnerUpdatePlaceDto dto)
     {
         Place? place = _db.Places
             .Include(p => p.Ownership)
+            .Include(p => p.OpeningHours)
             .Include(p => p.ProductCategories)
                 .ThenInclude(pc => pc.Products)
                     .ThenInclude(p => p.AddOnCategories)
@@ -110,11 +117,62 @@ public class OwnerService
         _db.SaveChanges();
 
         var reloaded = _db.Places
+            .Include(p => p.OpeningHours)
             .Include(p => p.ProductCategories)
                 .ThenInclude(pc => pc.Products)
             .First(p => p.Id == placeId);
 
-        return (OwnerPlaceResult.Success, PlaceDtoMapper.MapToGetDto(reloaded));
+        return (OwnerPlaceResult.Success, PlaceDtoMapper.MapToPrivateDto(reloaded, _schedule.IsOpen(reloaded)));
+    }
+
+    // ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // WEEKLY OPENING HOURS
+    // ---------------------------------------------------------------------------
+
+    // Fully replaces the place's weekly schedule (delete + insert, one
+    // transaction). An empty list clears it, which leaves the place closed.
+    public (OwnerHoursResult, List<OpeningHourDto>?, string?) ReplaceHours(
+        string ownerId, int placeId, SetOpeningHoursDto dto)
+    {
+        Place? place = _db.Places
+            .Include(p => p.Ownership)
+            .Include(p => p.OpeningHours)
+            .FirstOrDefault(p => p.Id == placeId);
+
+        // A place that is not this owner's is reported exactly like a missing
+        // one, so place ids cannot be enumerated.
+        if (place == null || place.Ownership?.OwnerId != ownerId)
+            return (OwnerHoursResult.PlaceNotFound, null, null);
+
+        // Validate the whole payload before touching the database.
+        string? error = PlaceScheduleService.ValidateSchedule(dto.Hours ?? []);
+        if (error != null)
+            return (OwnerHoursResult.InvalidSchedule, null, error);
+
+        using var transaction = _db.Database.BeginTransaction();
+
+        _db.PlaceOpeningHours.RemoveRange(place.OpeningHours);
+        foreach (OpeningHourDto hour in dto.Hours ?? [])
+        {
+            _db.PlaceOpeningHours.Add(new PlaceOpeningHour
+            {
+                PlaceId = placeId,
+                Day = hour.Day,
+                OpensAt = hour.OpensAt,
+                ClosesAt = hour.ClosesAt
+            });
+        }
+
+        _db.SaveChanges();
+        transaction.Commit();
+
+        List<OpeningHourDto> saved = (dto.Hours ?? [])
+            .OrderBy(hour => hour.Day)
+            .ThenBy(hour => hour.OpensAt)
+            .ToList();
+
+        return (OwnerHoursResult.Success, saved, null);
     }
 
     // ---------------------------------------------------------------------------
@@ -197,13 +255,16 @@ public class OwnerService
             .ToList();
     }
 
-    private static OwnedPlaceDto ToDto(Place place) => new(
+    private OwnedPlaceDto ToDto(Place place) => new(
         place.Id,
         place.Name,
         place.Description,
         place.Address,
         place.Latitude,
         place.Longtitude,
-        place.Hidden);
+        place.Hidden,
+        place.AcceptingOrders,
+        _schedule.IsOpen(place),
+        PlaceDtoMapper.MapHours(place));
 }
 

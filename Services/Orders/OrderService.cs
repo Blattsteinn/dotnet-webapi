@@ -5,6 +5,7 @@ using FoodOrderingApi.Models.Places;
 
 using FoodOrderingApi.Dtos.Orders;
 using FoodOrderingApi.Mappers;
+using FoodOrderingApi.Services.Places;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
@@ -14,6 +15,7 @@ public enum AddOrderResult
 {
     Success,
     PlaceNotFound,
+    PlaceClosed,
     ZeroProducts,
     ProductNotFound,
     AddOnNotFound,
@@ -37,9 +39,14 @@ public enum SetOrderStatusResult
 public class OrderService
 {
     private readonly AppDbContext _db;
-    public OrderService(AppDbContext db)
+    private readonly PlaceScheduleService _scheduleService;
+    private readonly TimeProvider _timeProvider;
+
+    public OrderService(AppDbContext db, PlaceScheduleService schedule, TimeProvider timeProvider)
     {
         _db = db;
+        _scheduleService = schedule;
+        _timeProvider = timeProvider;
     }
 
     private IQueryable<Order> WithItems() =>
@@ -97,9 +104,18 @@ public class OrderService
         int placeId = orderDto.PlaceId;
 
         // If place does not exist return early
-        Place? place = _db.Places.Find(placeId);
+        Place? place = _db.Places
+            .Include(p => p.OpeningHours)
+            .FirstOrDefault(p => p.Id == placeId);
+
         if(place == null)
             return (null, AddOrderResult.PlaceNotFound);
+
+        // The place must be open right now: accepting orders and within its
+        // weekly hours. Checked after the place is validated and before any
+        // item is processed. Status updates are not affected by this.
+        if (!_scheduleService.IsOpen(place))
+            return (null, AddOrderResult.PlaceClosed);
         
         // If no products return early
         List<CreateOrderItemDto> orderItemDto = orderDto.OrderItems;
@@ -111,7 +127,7 @@ public class OrderService
             PlaceId = placeId,
             UserId = userId,
             Status = OrderStatus.Pending,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = _timeProvider.GetUtcNow().UtcDateTime
         };
 
 

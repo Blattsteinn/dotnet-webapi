@@ -1,11 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using FoodOrderingApi.Data;
+using FoodOrderingApi.Services;
 using FoodOrderingApi.Services.Orders;
 using FoodOrderingApi.Services.Places;
 using System.Text.Json.Serialization;
 using FoodOrderingApi.Services.Accounts;
 
 using FoodOrderingApi.Models.Users;
+using FoodOrderingApi.Models.Places;
 
 using FoodOrderingApi.Authorization;
 
@@ -15,6 +17,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
+using System.Globalization;
 // ----------------
 
 var builder = WebApplication.CreateBuilder(args);
@@ -108,6 +111,22 @@ builder.Services.AddAuthorization();
 //------------------------------------------------- 
 //------------------------------------------------- 
 
+// Everything that needs "now" resolves TimeProvider instead of calling
+// DateTime.UtcNow. Development may freeze it via Clock:FixedUtcNow so ordering
+// can be exercised at any hour; production always uses the system clock.
+builder.Services.AddSingleton(TimeProvider.System);
+
+if (builder.Environment.IsDevelopment() &&
+    DateTimeOffset.TryParse(
+        builder.Configuration["Clock:FixedUtcNow"],
+        CultureInfo.InvariantCulture,
+        DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+        out var fixedUtcNow))
+{
+    builder.Services.AddSingleton<TimeProvider>(new FixedTimeProvider(fixedUtcNow));
+}
+
+builder.Services.AddScoped<PlaceScheduleService>();
 builder.Services.AddScoped<PlaceService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<OrderService>();
@@ -164,6 +183,40 @@ using (var scope = app.Services.CreateScope())
         {
             await userManager.AddToRoleAsync(admin, Roles.Admin);
         }
+
+        // Two more accounts, for the opening-hours fixtures: an owner (the
+        // /owner routes are role-gated and ownership-scoped) and a customer
+        // (ordering needs a logged-in user). Both are Development-only, like
+        // the admin above.
+        var ownerEmail = builder.Configuration["Seed:OwnerEmail"] ?? "owner@example.com";
+        var ownerPassword = builder.Configuration["Seed:OwnerPassword"] ?? "Owner123!";
+
+        var owner = await EnsureUserAsync(userManager, ownerEmail, ownerPassword);
+
+        if (owner != null && !await userManager.IsInRoleAsync(owner, Roles.Owner))
+        {
+            await userManager.AddToRoleAsync(owner, Roles.Owner);
+        }
+
+        var customerEmail = builder.Configuration["Seed:CustomerEmail"] ?? "customer@example.com";
+        var customerPassword = builder.Configuration["Seed:CustomerPassword"] ?? "Customer123!";
+
+        await EnsureUserAsync(userManager, customerEmail, customerPassword);
+
+        // Hand the 24h demo place to the test owner, unless somebody already
+        // owns it. Seeded places are normally ownerless; this one is not, so
+        // the owner endpoints and the opening-hours file have a place they can
+        // edit without creating one first.
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var kebab = db.Places
+            .Include(p => p.Ownership)
+            .FirstOrDefault(p => p.Name == "All Night Kebab");
+
+        if (kebab != null && kebab.Ownership == null && owner != null)
+        {
+            db.PlaceOwnerships.Add(new PlaceOwnership { PlaceId = kebab.Id, OwnerId = owner.Id });
+            db.SaveChanges();
+        }
     }
 }
 // -----------------------------------------------
@@ -182,3 +235,18 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Development seeding helper: create the account if it is missing, so the
+// seeder is safe to run on every startup.
+static async Task<ApplicationUser?> EnsureUserAsync(
+    UserManager<ApplicationUser> userManager, string email, string password)
+{
+    var existing = await userManager.FindByEmailAsync(email);
+    if (existing != null)
+        return existing;
+
+    var user = new ApplicationUser { UserName = email, Email = email };
+    var result = await userManager.CreateAsync(user, password);
+
+    return result.Succeeded ? user : null;
+}

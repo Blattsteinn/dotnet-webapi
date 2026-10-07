@@ -10,9 +10,11 @@ namespace FoodOrderingApi.Services.Places;
 public class PlaceService
 {
     private readonly AppDbContext _db;
-    public PlaceService(AppDbContext db)
+    private readonly PlaceScheduleService _schedule;
+    public PlaceService(AppDbContext db, PlaceScheduleService schedule)
     {
         _db = db;
+        _schedule = schedule;
     }
 
     // Hidden places are invisible to customers.
@@ -20,16 +22,18 @@ public class PlaceService
     {
         return _db.Places
             .Where(p => !p.Hidden)
+            .Include(p => p.OpeningHours)
             .OrderBy(p => p.Id)
             .ToList()
-            .Select(PlaceDtoMapper.MapToSummaryDto)
+            .Select(p => PlaceDtoMapper.MapToSummaryDto(p, _schedule.IsOpen(p)))
             .ToList();
     }
 
-    public GetPlaceDto? Get(int id)
+    public PublicPlaceDto? Get(int id)
     {   
         // Filter the hidden as well;
         var place = _db.Places
+            .Include(p => p.OpeningHours)
             .Include(p => p.ProductCategories.Where(pc => !pc.Hidden))
             .ThenInclude(pc => pc.Products.Where(pr => !pr.Hidden))
             .FirstOrDefault(p => p.Id == id && !p.Hidden);
@@ -37,7 +41,7 @@ public class PlaceService
         if (place == null)
             return null;
 
-        return PlaceDtoMapper.MapToGetDto(place);
+        return PlaceDtoMapper.MapToPublicDto(place, _schedule.IsOpen(place));
     }
     
 }

@@ -96,7 +96,7 @@ public class OwnerController : ControllerBase
     [HttpGet("places/{id}")]
     public IActionResult GetPlace(int id)
     {
-        GetPlaceDto? place = _ownerService.GetPlace(CallerId, id);
+        PrivatePlaceDto? place = _ownerService.GetPlace(CallerId, id);
         if (place == null)
             return NotFound("Place does not exist or is not yours.");
 
@@ -121,6 +121,20 @@ public class OwnerController : ControllerBase
             OwnerPlaceResult.NotTheOwner   => Forbid(),
             OwnerPlaceResult.UnknownChildId =>
                 BadRequest("JSON included a child id that does not exist under this place."),
+            _ => StatusCode(500)
+        };
+    }
+
+    // Fully replaces the place's weekly schedule. An empty list clears it.
+    [HttpPut("places/{placeId}/hours")]
+    public IActionResult ReplaceHours(int placeId, SetOpeningHoursDto dto)
+    {
+        var (result, hours, error) = _ownerService.ReplaceHours(CallerId, placeId, dto);
+        return result switch
+        {
+            OwnerHoursResult.Success       => Ok(new { placeId, openingHours = hours }),
+            OwnerHoursResult.PlaceNotFound => NotFound("Place does not exist or is not yours."),
+            OwnerHoursResult.InvalidSchedule => BadRequest(error),
             _ => StatusCode(500)
         };
     }
