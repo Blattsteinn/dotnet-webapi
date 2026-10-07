@@ -1,0 +1,622 @@
+###############################################################################
+# Order status transition rules — manual test file
+#
+# Exercises OrderService.SetStatusForPlace through
+#   PATCH /api/v1/manager/places/{placeId}/orders/{orderId}/status
+#
+# Allowed graph:
+#   Pending -> Confirmed -> Preparing -> Ready -> Completed
+#   Cancelled is reachable from any non-terminal state
+#   Completed and Cancelled are terminal
+#   A no-op move to the current status is NOT allowed (replaying a state -> 409)
+# Any move outside that graph returns 409 Conflict.
+#
+# Status codes used in the bodies:
+#   0 = Pending, 1 = Confirmed, 2 = Preparing, 3 = Ready, 4 = Completed, 5 = Cancelled
+#
+# Run the requests TOP TO BOTTOM. Named requests (@name) publish their response
+# fields as variables, so a request fails if the request producing its variable
+# has not been run yet.
+#
+# Syntax rule: a `@var = {{name.response...}}` line must be separated from the
+# request body by a `###` delimiter. Without the delimiter the line is parsed as
+# part of the body and the request fails with 400.
+#
+# Transitions are irreversible, so every scenario that must start from a given
+# status creates its OWN order first.
+###############################################################################
+
+@host = http://localhost:5258
+@password = TestPassword123!
+
+# Seeded by Program.cs on startup (appsettings.Development.json -> Seed).
+@adminEmail = admin@admin.com
+@adminPassword = Admin123!
+
+# Dedicated accounts for this file, so it does not collide with other flows.
+@ownerEmail = status-owner@example.com
+@customerEmail = status-customer@example.com
+
+
+###############################################################################
+# 0. SETUP — admin, owner (with an owned place + product), customer
+###############################################################################
+
+### 0.1 Login as the seeded admin
+# @name adminLogin
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+###
+
+@adminToken = {{adminLogin.response.body.$.token}}
+
+### 0.2 Register the owner account (400 if it already exists — harmless)
+POST {{host}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{ownerEmail}}",
+  "password": "{{password}}"
+}
+
+### 0.3 Register the customer account (400 if it already exists — harmless)
+POST {{host}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{customerEmail}}",
+  "password": "{{password}}"
+}
+
+### 0.4 Login as the owner (no capability yet, but publishes the user id)
+# @name ownerLogin
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{ownerEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+@ownerId = {{ownerLogin.response.body.$.userId}}
+
+### 0.5 Admin grants the Owner role
+# Expect: 200
+POST {{host}}/api/v1/admin/users/{{ownerId}}/roles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "role": "Owner"
+}
+
+### 0.6 Re-login: the role must be in a freshly issued token
+# Expect: 200, roles: ["Owner"]
+# @name ownerReLogin
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{ownerEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+@ownerToken = {{ownerReLogin.response.body.$.token}}
+
+### 0.7 Login as the customer
+# @name customerLogin
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{customerEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+@customerToken = {{customerLogin.response.body.$.token}}
+
+### 0.8 The owner creates a place (ownership row is written by the system)
+# Expect: 201 Created
+# @name createPlace
+POST {{host}}/api/v1/owner/places
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "name": "Status Transition Diner",
+  "latitude": 54.6872,
+  "longtitude": 25.2797,
+  "description": "Place for the status transition tests"
+}
+
+###
+
+@placeId = {{createPlace.response.body.$.id}}
+
+### 0.9 Add one product (no add-on categories, so an order needs no add-ons)
+# The PATCH body is a full replace; "hidden" must be present.
+# Expect: 200
+# @name addProduct
+PATCH {{host}}/api/v1/owner/places/{{placeId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{
+  "name": "Status Transition Diner",
+  "latitude": 54.6872,
+  "longtitude": 25.2797,
+  "description": "Place for the status transition tests",
+  "hidden": false,
+  "productCategories": [
+    {
+      "id": 0,
+      "destroy": false,
+      "name": "Mains",
+      "description": null,
+      "hidden": false,
+      "products": [
+        {
+          "id": 0,
+          "destroy": false,
+          "name": "Test Burger",
+          "description": null,
+          "hidden": false,
+          "price": 5.00,
+          "addOnCategories": []
+        }
+      ]
+    }
+  ]
+}
+
+###
+
+@productId = {{addProduct.response.body.$.productCategories[0].products[0].id}}
+
+
+###############################################################################
+# 1. HAPPY PATH + TERMINAL GUARDS
+#    Pending -> Confirmed -> Preparing -> Ready -> Completed, then no exit.
+###############################################################################
+
+### 1.1 Create order A — starts Pending
+# @name orderA
+POST {{host}}/api/v1/orders
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{ "placeId": {{placeId}}, "orderItems": [ { "productId": {{productId}}, "quantity": 1, "addOns": [] } ] }
+
+###
+
+@orderAId = {{orderA.response.body.$.id}}
+
+### 1.2 Pending -> Confirmed
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderAId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 1 }
+
+### 1.3 Confirmed -> Preparing
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderAId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 2 }
+
+### 1.4 Preparing -> Ready
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderAId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 3 }
+
+### 1.5 Ready -> Completed
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderAId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 4 }
+
+### 1.6 Read back — the order is Completed
+# Expect: 200, "status": 4
+GET {{host}}/api/v1/owner/places/{{placeId}}/orders/{{orderAId}}
+Authorization: Bearer {{ownerToken}}
+Accept: application/json
+
+### 1.7 NEGATIVE: Completed -> Pending (terminal, backwards)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderAId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 0 }
+
+### 1.8 NEGATIVE: Completed -> Confirmed (terminal, backwards)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderAId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 1 }
+
+### 1.9 NEGATIVE: Completed -> Cancelled (terminal has no side-exit)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderAId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 5 }
+
+### 1.10 NEGATIVE: Completed -> Completed (replay of a terminal state)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderAId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 4 }
+
+
+###############################################################################
+# 2. SKIPPING AHEAD / NO-OP — all must be rejected, state unchanged
+###############################################################################
+
+### 2.1 Create order B — starts Pending
+# @name orderB
+POST {{host}}/api/v1/orders
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{ "placeId": {{placeId}}, "orderItems": [ { "productId": {{productId}}, "quantity": 1, "addOns": [] } ] }
+
+###
+
+@orderBId = {{orderB.response.body.$.id}}
+
+### 2.2 NEGATIVE: Pending -> Preparing (skips Confirmed)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderBId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 2 }
+
+### 2.3 NEGATIVE: Pending -> Ready (skips two)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderBId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 3 }
+
+### 2.4 NEGATIVE: Pending -> Completed (skips to terminal)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderBId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 4 }
+
+### 2.5 NEGATIVE: Pending -> Pending (no-op replay)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderBId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 0 }
+
+### 2.6 The rejected moves changed nothing — still Pending
+# Expect: 200, "status": 0
+GET {{host}}/api/v1/owner/places/{{placeId}}/orders/{{orderBId}}
+Authorization: Bearer {{ownerToken}}
+Accept: application/json
+
+### 2.7 The valid move still works after the rejections
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderBId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 1 }
+
+
+###############################################################################
+# 3. BACKWARD MOVES
+###############################################################################
+
+### 3.1 Create order C
+# @name orderC
+POST {{host}}/api/v1/orders
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{ "placeId": {{placeId}}, "orderItems": [ { "productId": {{productId}}, "quantity": 1, "addOns": [] } ] }
+
+###
+
+@orderCId = {{orderC.response.body.$.id}}
+
+### 3.2 Pending -> Confirmed (setup)
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderCId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 1 }
+
+### 3.3 Confirmed -> Preparing (setup)
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderCId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 2 }
+
+### 3.4 NEGATIVE: Preparing -> Pending (backwards)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderCId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 0 }
+
+### 3.5 NEGATIVE: Preparing -> Confirmed (backwards, one step)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderCId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 1 }
+
+### 3.6 Still Preparing
+# Expect: 200, "status": 2
+GET {{host}}/api/v1/owner/places/{{placeId}}/orders/{{orderCId}}
+Authorization: Bearer {{ownerToken}}
+Accept: application/json
+
+
+###############################################################################
+# 4. CANCELLED AS A SIDE-EXIT FROM PENDING
+###############################################################################
+
+### 4.1 Create order D
+# @name orderD
+POST {{host}}/api/v1/orders
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{ "placeId": {{placeId}}, "orderItems": [ { "productId": {{productId}}, "quantity": 1, "addOns": [] } ] }
+
+###
+
+@orderDId = {{orderD.response.body.$.id}}
+
+### 4.2 Pending -> Cancelled
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderDId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 5 }
+
+### 4.3 NEGATIVE: Cancelled -> Confirmed (terminal)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderDId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 1 }
+
+### 4.4 NEGATIVE: Cancelled -> Cancelled (replay)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderDId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 5 }
+
+
+###############################################################################
+# 5. CANCELLED AS A SIDE-EXIT FROM CONFIRMED
+###############################################################################
+
+### 5.1 Create order E
+# @name orderE
+POST {{host}}/api/v1/orders
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{ "placeId": {{placeId}}, "orderItems": [ { "productId": {{productId}}, "quantity": 1, "addOns": [] } ] }
+
+###
+
+@orderEId = {{orderE.response.body.$.id}}
+
+### 5.2 Pending -> Confirmed (setup)
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderEId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 1 }
+
+### 5.3 Confirmed -> Cancelled
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderEId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 5 }
+
+### 5.4 NEGATIVE: Cancelled -> Preparing (terminal)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderEId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 2 }
+
+
+###############################################################################
+# 6. CANCELLED AS A SIDE-EXIT FROM PREPARING
+###############################################################################
+
+### 6.1 Create order F
+# @name orderF
+POST {{host}}/api/v1/orders
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{ "placeId": {{placeId}}, "orderItems": [ { "productId": {{productId}}, "quantity": 1, "addOns": [] } ] }
+
+###
+
+@orderFId = {{orderF.response.body.$.id}}
+
+### 6.2 Pending -> Confirmed (setup)
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderFId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 1 }
+
+### 6.3 Confirmed -> Preparing (setup)
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderFId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 2 }
+
+### 6.4 Preparing -> Cancelled
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderFId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 5 }
+
+### 6.5 NEGATIVE: Cancelled -> Ready (terminal)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderFId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 3 }
+
+
+###############################################################################
+# 7. CANCELLED AS A SIDE-EXIT FROM READY
+###############################################################################
+
+### 7.1 Create order G
+# @name orderG
+POST {{host}}/api/v1/orders
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{ "placeId": {{placeId}}, "orderItems": [ { "productId": {{productId}}, "quantity": 1, "addOns": [] } ] }
+
+###
+
+@orderGId = {{orderG.response.body.$.id}}
+
+### 7.2 Pending -> Confirmed (setup)
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderGId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 1 }
+
+### 7.3 Confirmed -> Preparing (setup)
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderGId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 2 }
+
+### 7.4 Preparing -> Ready (setup)
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderGId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 3 }
+
+### 7.5 Ready -> Cancelled
+# Expect: 200
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderGId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 5 }
+
+### 7.6 NEGATIVE: Cancelled -> Completed (terminal)
+# Expect: 409
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderGId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 4 }
+
+
+###############################################################################
+# 8. GUARD RAILS — bad input, unknown order, unauthorized caller
+###############################################################################
+
+### 8.1 NEGATIVE: missing status
+# The DTO binds Status as nullable, so an absent field is caught before the
+# transition check.
+# Expect: 400 "A status is required."
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderBId}}/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ }
+
+### 8.2 NEGATIVE: unknown order id (valid manager, real place)
+# Expect: 404
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/2147483647/status
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{ "status": 1 }
+
+### 8.3 NEGATIVE: the customer is not a manager of this place
+# The endpoint is manager-scoped; an unrelated authenticated user gets 404
+# (never 403 — it must not reveal that the order exists).
+# Expect: 404
+PATCH {{host}}/api/v1/manager/places/{{placeId}}/orders/{{orderBId}}/status
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{ "status": 2 }
+
+
+###############################################################################
+# 9. CLEANUP (optional)
+###############################################################################
+
+### 9.1 Delete the test place (its orders cascade away with it)
+DELETE {{host}}/api/v1/admin/places/{{placeId}}
+Authorization: Bearer {{adminToken}}

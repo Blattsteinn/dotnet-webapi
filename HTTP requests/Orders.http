@@ -109,3 +109,6 @@ Content-Type: application/json
 # The owner of the place counts as a manager, so both owners and the users the
 # owner added to the place's Managers table can call it.
 # OrderStatus: 0 = Pending, 1 = Confirmed, 2 = Preparing, 3 = Ready, 4 = Completed, 5 = Cancelled
+# Status only moves forward: Pending -> Confirmed -> Preparing -> Ready ->
+# Completed, and Cancelled may be entered from any non-terminal state. Completed
+# and Cancelled are terminal. Any other move (including a no-op) returns 409.

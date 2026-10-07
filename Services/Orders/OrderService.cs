@@ -21,6 +21,13 @@ public enum AddOrderResult
     SingleChoiceAddOnsExceeded,
 }
 
+public enum SetOrderStatusResult
+{
+    Success,
+    OrderNotFound,
+    InvalidTransition,
+}
+
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // TWO SCOPES:
@@ -220,26 +227,47 @@ public class OrderService
 
     // ---------------------------------------------------------------------------
     // ---------------------------------------------------------------------------
-    // PLACE MANAGER SCOPE
+    // EDITING STATUS FOR THE ORDER.
     // ---------------------------------------------------------------------------
+
     // The contents of a placed order are immutable; only the status can change.
     // The caller may be the place's owner (while still holding the Owner role)
     // or one of the place's managers.
-    public GetOrderDto? SetStatusForPlace(string callerId, bool callerIsOwner, int placeId, int orderId, OrderStatus status)
+    public (GetOrderDto?, SetOrderStatusResult) SetStatusForPlace(
+        string callerId, bool callerIsOwner, int placeId, int orderId, OrderStatus status)
     {
         if (!ManagesPlace(callerId, callerIsOwner, placeId))
-            return null;
+            return (null, SetOrderStatusResult.OrderNotFound);
 
         Order? order = WithItems()
             .FirstOrDefault(o => o.Id == orderId && o.PlaceId == placeId);
 
         if (order == null)
-            return null;
+            return (null, SetOrderStatusResult.OrderNotFound);
+
+        if (!IsTransitionAllowed(order.Status, status))
+            return (null, SetOrderStatusResult.InvalidTransition);
 
         order.Status = status;
         _db.SaveChanges();
 
-        return OrderDtoMapper.MapToDto(order);
+        return (OrderDtoMapper.MapToDto(order), SetOrderStatusResult.Success);
     }
+
+    // Status order: Pending -> Confirmed -> Preparing -> Ready -> Completed
+    private static bool IsTransitionAllowed(OrderStatus from, OrderStatus to) => (from, to) switch
+    {
+        (OrderStatus.Pending,   OrderStatus.Confirmed) => true,
+        (OrderStatus.Confirmed, OrderStatus.Preparing) => true,
+        (OrderStatus.Preparing, OrderStatus.Ready)     => true,
+        (OrderStatus.Ready,     OrderStatus.Completed) => true,
+
+        // cancelling is allowed until the order is completed
+        (OrderStatus.Pending or OrderStatus.Confirmed or OrderStatus.Preparing or OrderStatus.Ready,
+        OrderStatus.Cancelled) => true,
+
+        // everything else, including anything out of Completed or Cancelled
+        _ => false
+    };
 
 }

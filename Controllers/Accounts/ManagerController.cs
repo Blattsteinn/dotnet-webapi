@@ -46,12 +46,15 @@ public class ManagerController : ControllerBase
         if (dto.Status == null)
             return BadRequest("A status is required.");
 
-        GetOrderDto? updated = _orderService.SetStatusForPlace(
+        (GetOrderDto? updated, SetOrderStatusResult result) = _orderService.SetStatusForPlace(
             CallerId, User.IsOwner(), placeId, orderId, dto.Status.Value);
 
-        if (updated == null)
-            return NotFound("Order does not exist for this place.");
-
-        return Ok(updated);
+        return result switch
+        {
+            SetOrderStatusResult.OrderNotFound => NotFound("Order does not exist for this place."),
+            SetOrderStatusResult.InvalidTransition => Conflict("The requested status transition is not allowed."),
+            SetOrderStatusResult.Success => Ok(updated),
+            _ => StatusCode(500)
+        };
     }
 }
