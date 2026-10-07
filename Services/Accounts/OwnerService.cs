@@ -3,7 +3,9 @@ using FoodOrderingApi.Dtos.Accounts.Owner;
 using FoodOrderingApi.Dtos.Places;
 using FoodOrderingApi.Mappers;
 using FoodOrderingApi.Models.Places;
+using FoodOrderingApi.Models.Users;
 using FoodOrderingApi.Services.Places;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace FoodOrderingApi.Services.Accounts;
@@ -16,7 +18,7 @@ public enum OwnerPlaceResult
     UnknownChildId
 }
 
-public enum ManagerRoleResult
+public enum ManagerResult
 {
     Success,
     PlaceNotFound,
@@ -37,11 +39,13 @@ public class OwnerService
 {
     private readonly AppDbContext _db;
     private readonly PlaceScheduleService _schedule;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public OwnerService(AppDbContext db, PlaceScheduleService schedule)
+    public OwnerService(AppDbContext db, PlaceScheduleService schedule, UserManager<ApplicationUser> userManager)
     {
         _db = db;
         _schedule = schedule;
+        _userManager = userManager;
     }
 
     // Owners rows are the source of truth
@@ -177,68 +181,9 @@ public class OwnerService
 
     // ---------------------------------------------------------------------------
     // ---------------------------------------------------------------------------
-    // ADDING / REMOVING USER AS A MANAGER
+    // ADDING / REMOVING / LISTING USERS AS MANAGERS
     // ---------------------------------------------------------------------------
 
-
-    public ManagerRoleResult AddManager(string ownerId, int placeId, string userId)
-    {
-        Place? place = _db.Places
-            .Include(p => p.Ownership)
-            .FirstOrDefault(p => p.Id == placeId);
-
-        if (place == null)
-            return ManagerRoleResult.PlaceNotFound;
-
-        if (place.Ownership?.OwnerId != ownerId)
-            return ManagerRoleResult.NotTheOwner;
-
-        if (!_db.Users.Any(u => u.Id == userId))
-            return ManagerRoleResult.UserNotFound;
-
-        // Idempotent: promoting an existing manager is a no-op.
-        bool alreadyManager = _db.Managers
-            .Any(m => m.PlaceId == placeId && m.UserId == userId);
-
-        if (!alreadyManager)
-        {
-            _db.Managers.Add(new PlaceManager { PlaceId = placeId, UserId = userId });
-            _db.SaveChanges();
-        }
-
-        return ManagerRoleResult.Success;
-    }
-
-    // Mirrors AddManager: 
-    public ManagerRoleResult RemoveManager(string ownerId, int placeId, string userId)
-    {
-        Place? place = _db.Places
-            .Include(p => p.Ownership)
-            .FirstOrDefault(p => p.Id == placeId);
-
-        if (place == null)
-            return ManagerRoleResult.PlaceNotFound;
-
-        if (place.Ownership?.OwnerId != ownerId)
-            return ManagerRoleResult.NotTheOwner;
-
-        if (!_db.Users.Any(u => u.Id == userId))
-            return ManagerRoleResult.UserNotFound;
-
-        PlaceManager? manager = _db.Managers
-            .FirstOrDefault(m => m.PlaceId == placeId && m.UserId == userId);
-
-        if (manager != null)
-        {
-            _db.Managers.Remove(manager);
-            _db.SaveChanges();
-        }
-
-        return ManagerRoleResult.Success;
-    }
-
-    // Mirrors AddManager/RemoveManager: null == the place does not exist or is
-    // not this owner's.
     public List<ManagerDto>? GetManagers(string ownerId, int placeId)
     {
         Place? place = _db.Places
@@ -253,6 +198,63 @@ public class OwnerService
             .OrderBy(m => m.UserId)
             .Select(m => new ManagerDto(m.UserId, m.User.UserName, m.User.Email))
             .ToList();
+    }
+
+    // Assignment is by email. The user id is resolved here, never taken from the
+    // request, so the client never needs to know internal ids.
+    public async Task<ManagerResult> AssignManagerAsync(string ownerId, int placeId, string email)
+    {
+        Place? place = _db.Places
+            .Include(p => p.Ownership)
+            .FirstOrDefault(p => p.Id == placeId);
+
+        if (place == null)
+            return ManagerResult.PlaceNotFound;
+
+        if (place.Ownership?.OwnerId != ownerId)
+            return ManagerResult.NotTheOwner;
+
+        ApplicationUser? user = await _userManager.FindByEmailAsync(email);
+        if (user == null)
+            return ManagerResult.UserNotFound;
+
+        bool alreadyManager = _db.Managers
+            .Any(m => m.PlaceId == placeId && m.UserId == user.Id);
+
+        if (!alreadyManager)
+        {
+            _db.Managers.Add(new PlaceManager { PlaceId = placeId, UserId = user.Id });
+            _db.SaveChanges();
+        }
+
+        return ManagerResult.Success;
+    }
+
+    public ManagerResult RemoveManager(string ownerId, int placeId, string userId)
+    {
+        Place? place = _db.Places
+            .Include(p => p.Ownership)
+            .FirstOrDefault(p => p.Id == placeId);
+
+        if (place == null)
+            return ManagerResult.PlaceNotFound;
+
+        if (place.Ownership?.OwnerId != ownerId)
+            return ManagerResult.NotTheOwner;
+
+        if (!_db.Users.Any(u => u.Id == userId))
+            return ManagerResult.UserNotFound;
+
+        PlaceManager? manager = _db.Managers
+            .FirstOrDefault(m => m.PlaceId == placeId && m.UserId == userId);
+
+        if (manager != null)
+        {
+            _db.Managers.Remove(manager);
+            _db.SaveChanges();
+        }
+
+        return ManagerResult.Success;
     }
 
     private OwnedPlaceDto ToDto(Place place) => new(

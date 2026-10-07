@@ -5,15 +5,11 @@ using FoodOrderingApi.Dtos.Places;
 using FoodOrderingApi.Services.Accounts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using FoodOrderingApi.Dtos.Accounts.Admin;
 using FoodOrderingApi.Dtos.Accounts.Owner;
 
 namespace FoodOrderingApi.Controllers.Accounts;
 
 
-// Conditions for callers:
-// 1) the caller must hold the Owner role (they are allowed to run places).
-// 2) every operation below is then scoped to the places they actually own.
 [ApiController]
 [Route("api/v1/owner")]
 [Authorize(Roles = Roles.Owner)]
@@ -29,13 +25,11 @@ public class OwnerController : ControllerBase
     // This finds an user from auth token.
     private string CallerId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-    private const string ManagerRole = "Manager";
-
     // ---------------------------------------------------------------------------
     // ---------------------------------------------------------------------------
     // ADDING / REMOVING / LISTING USERS AS MANAGERS
     // ---------------------------------------------------------------------------
-    // uses OwnerService.cs
+
 
     [HttpGet("places/{placeId}/managers")]
     public IActionResult GetManagers(int placeId)
@@ -47,36 +41,31 @@ public class OwnerController : ControllerBase
         return Ok(managers);
     }
 
-    [HttpPatch("places/{placeId}/managers/{userId}/roles")]
-    public IActionResult AssignRole(int placeId, string userId, AssignRoleDto dto)
+    // Assignment is by email
+    [HttpPatch("places/{placeId}/managers/roles")]
+    public async Task<IActionResult> AssignManager(int placeId, AssignManagerDto dto)
     {
-        if (!string.Equals(dto.Role, ManagerRole, StringComparison.OrdinalIgnoreCase))
-            return BadRequest($"Only the '{ManagerRole}' role can be assigned here.");
-
-        ManagerRoleResult result = _ownerService.AddManager(CallerId, placeId, userId);
+        ManagerResult result = await _ownerService.AssignManagerAsync(CallerId, placeId, dto.Email);
         return result switch
         {
-            ManagerRoleResult.Success       => Ok(new { placeId, userId, role = ManagerRole }),
-            ManagerRoleResult.PlaceNotFound => NotFound("Place does not exist."),
-            ManagerRoleResult.NotTheOwner   => Forbid(),
-            ManagerRoleResult.UserNotFound  => NotFound("User does not exist."),
+            ManagerResult.Success       => Ok(new { placeId, email = dto.Email }),
+            ManagerResult.PlaceNotFound => NotFound("Place does not exist."),
+            ManagerResult.NotTheOwner   => Forbid(),
+            ManagerResult.UserNotFound  => NotFound("User does not exist."),
             _ => StatusCode(500)
         };
     }
 
     [HttpDelete("places/{placeId}/managers/{userId}/roles")]
-    public IActionResult RemoveRole(int placeId, string userId, AssignRoleDto dto)
+    public IActionResult RemoveManager(int placeId, string userId)
     {
-        if (!string.Equals(dto.Role, ManagerRole, StringComparison.OrdinalIgnoreCase))
-            return BadRequest($"Only the '{ManagerRole}' role can be removed here.");
-
-        ManagerRoleResult result = _ownerService.RemoveManager(CallerId, placeId, userId);
+        ManagerResult result = _ownerService.RemoveManager(CallerId, placeId, userId);
         return result switch
         {
-            ManagerRoleResult.Success       => NoContent(),
-            ManagerRoleResult.PlaceNotFound => NotFound("Place does not exist."),
-            ManagerRoleResult.NotTheOwner   => Forbid(),
-            ManagerRoleResult.UserNotFound  => NotFound("User does not exist."),
+            ManagerResult.Success       => NoContent(),
+            ManagerResult.PlaceNotFound => NotFound("Place does not exist."),
+            ManagerResult.NotTheOwner   => Forbid(),
+            ManagerResult.UserNotFound  => NotFound("User does not exist."),
             _ => StatusCode(500)
         };
     }
@@ -85,7 +74,6 @@ public class OwnerController : ControllerBase
     // ---------------------------------------------------------------------------
     // PLACE CONTROL ACTIONS
     // ---------------------------------------------------------------------------
-    // uses OwnerService.cs
 
     [HttpGet("places")]
     public IActionResult GetMyPlaces()
