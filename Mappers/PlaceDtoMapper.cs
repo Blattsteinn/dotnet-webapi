@@ -73,7 +73,7 @@ public static class PlaceDtoMapper
                 Name: category.Name,
                 Hidden: category.Hidden,
                 Products: category.Products
-                    .Select(product => new ProductSummaryDto(
+                    .Select(product => new PlaceProductDto(
                         Id: product.Id,
                         Name: product.Name,
                         Hidden: product.Hidden,

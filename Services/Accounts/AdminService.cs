@@ -1,11 +1,13 @@
 using FoodOrderingApi.Data;
 
+using FoodOrderingApi.Dtos.Accounts.Admin;
 using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Models.Users;
 
 using FoodOrderingApi.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using FoodOrderingApi.Dtos.Places;
 
 
 namespace FoodOrderingApi.Services.Accounts;
@@ -36,38 +38,6 @@ public class AdminService
         _userManager = userManager;
     }
 
-    // Not nested. Admin sees all places, hidden or not.
-    public List<Place> GetAllPlaces()
-    {
-        List<Place> places = _db.Places
-            .Include(p => p.Ownership)
-            .Include(p => p.OpeningHours)
-            .ToList();
-        return places;
-    }
-
-    public Place? GetPlace(int id)
-    {   
-        Place? place = _db.Places
-            .Include(p => p.Ownership)
-            .Include(p => p.OpeningHours)
-            .Include(p => p.ProductCategories)
-            .ThenInclude(pc => pc.Products)
-            .ThenInclude(p => p.AddOnCategories)
-            .ThenInclude(ac => ac.AddOns)
-            .FirstOrDefault(p => p.Id == id);
-
-            return place;
-    }
-
-    public Place AddPlace(Place place)
-    {
-        _db.Places.Add(place);
-        _db.SaveChanges();
-
-        return place; 
-    }
-
     public bool DeletePlace(int id)
     {
         Place? place = _db.Places.Find(id);
@@ -81,13 +51,13 @@ public class AdminService
     }
 
     // -------------------------------------------------------------------
-    // -- Role assignment ------------------------------------------------
+    // -- Roles ----------------------------------------------------------
 
-    // Promoting a user to Owner is the admin's job, and it is what unlocks the
-    // /api/v1/owner endpoints for that user.
 
-    // Note: regranting a role does not make the place visible. Owners should do that 
-    // manually. AssignRoleAsync never touches places
+    // --------------------------------------
+    // -- Granting owner role ---------------
+
+    // Only promotes an User to Owner role. Does not have side affects
     public async Task<AdminRoleResult> AssignRoleAsync(string userId, string role)
     {
         var known = MatchKnownRole(role);
@@ -99,7 +69,7 @@ public class AdminService
             return AdminRoleResult.UserNotFound;
 
         if (await _userManager.IsInRoleAsync(user, known))
-            return AdminRoleResult.Success;             // idempotent
+            return AdminRoleResult.Success;
 
         var result = await _userManager.AddToRoleAsync(user, known);
         if (!result.Succeeded)
@@ -110,10 +80,15 @@ public class AdminService
         return AdminRoleResult.Success;
     }
 
-    // Revoking Owner demotes user back to a regular AND
-    // takes that person's places out of public view (sets hidden = true)
-    //
-    // The Ownership rows are kept on purpose if we ever re-grant them the role.
+    // --------------------------------------
+    // -- Revoking owner role ---------------
+
+    // Side effects:
+    // 1. Demotes Owner to a regular User
+    // 2. Hides all the places that the owner used to own. (sets hidden = true)
+    // 3. Clears those places' manager list.
+    // 4. Keeps Ownership rows if was ever regranted.
+
     public async Task<AdminRoleResult> RemoveRoleAsync(string userId, string role)
     {
         var known = MatchKnownRole(role);
@@ -127,7 +102,7 @@ public class AdminService
         if (!await _userManager.IsInRoleAsync(user, known))
             return AdminRoleResult.NotInRole;
 
-        var result = await _userManager.RemoveFromRoleAsync(user, known);
+        var result = await _userManager.RemoveFromRoleAsync(user, known); //1st side effect
         if (!result.Succeeded)
             return AdminRoleResult.Failed;
 
@@ -137,34 +112,15 @@ public class AdminService
 
         if (known == Roles.Owner)
         {
-            // Here we make all of user owned places hidden
-            SetVisibilityForOwner(user.Id, hidden: true);
-
-            // The manager grants on those places were the owner's to hand out,
-            // so they go with the role.
-            ClearManagersForOwner(user.Id);
+            SetVisibilityForOwner(user.Id, hidden: true); // 2nd side effect
+            ClearManagersForOwner(user.Id); // 3rd side effect
         }
 
         return AdminRoleResult.Success;
     }
 
-    // -------------------------------------------------------------------
-    // -- Visibility controls --------------------------------------------
-
-    // Just in case admin needs to hide the place:
-    public AdminVisibilityResult SetVisibility(int placeId, bool hidden)
-    {
-        Place? place = _db.Places.FirstOrDefault(p => p.Id == placeId);
-        if (place == null)
-            return AdminVisibilityResult.PlaceNotFound;
-
-        place.Hidden = hidden;
-        _db.SaveChanges();
-        return AdminVisibilityResult.Success;
-    }
-
-    // Used when owner is demoted.
-    // RemoveRoleAsync calls this: 
+    // ------------------------------------------------------
+    // -- Helper functions for revoking / adding an owner role 
     private void SetVisibilityForOwner(string ownerId, bool hidden)
     {
         var owned = _db.Places
@@ -176,12 +132,6 @@ public class AdminService
 
         _db.SaveChanges();
     }
-
-    // Used when owner is demoted.
-    // RemoveRoleAsync calls this: drops every Managers row that points at one of
-    // the owner's places. The ownership rows themselves are kept (see
-    // RemoveRoleAsync), but the manager list is a live grant, so it does not
-    // survive the role.
     private void ClearManagersForOwner(string ownerId)
     {
         var ownedPlaceIds = _db.PlaceOwnerships

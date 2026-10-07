@@ -54,11 +54,14 @@ public record ProductCategoriesDetailDto(
     int Id,
     string Name,
     bool Hidden,
-    List<ProductSummaryDto> Products
+    List<PlaceProductDto> Products
 
 );
 
-public record ProductSummaryDto(
+// A product as it appears inside a place read model. Unlike the standalone
+// public ProductSummaryDto it keeps Hidden: the private (owner/admin) place
+// response shows the flag so an owner can see what they have hidden.
+public record PlaceProductDto(
     int Id,
     string Name,
     bool Hidden,

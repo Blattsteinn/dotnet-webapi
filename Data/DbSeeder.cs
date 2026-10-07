@@ -16,12 +16,12 @@ public static class DbSeeder
         // whenever they are missing, so a database created before this feature
         // still ends up with the test fixtures. Gaps are only ever filled: an
         // owner's later edits are never overwritten.
-        SeedOpeningHoursFixtures(db);
+        SeedFixtures(db);
     }
 
-    // ── Opening-hours fixtures ─────────────────────────────────────────────
+    // ── Fixtures: opening hours and visibility ─────────────────────────────
     //
-    // Three demo places, each with one job:
+    // Four demo places, each with one job:
     //   Pizza Palace   — a normal week plus an overnight leg (a place that has
     //                    a schedule to look at)
     //   Burger Joint   — no rows at all, so it is permanently closed (proves
@@ -29,9 +29,12 @@ public static class DbSeeder
     //   All Night Kebab— 24h every day, so it is always open and can be ordered
     //                    from at any hour. The Development owner (Program.cs)
     //                    owns it, so the /owner routes have something to edit.
+    //                    Its menu also carries the visibility cases: a hidden
+    //                    product inside a visible category, and a hidden
+    //                    category.
     //
-    // "OpeningHours.http" drives these fixtures.
-    private static void SeedOpeningHoursFixtures(AppDbContext db)
+    // "OpeningHours.http" and "Products.http" drive these fixtures.
+    private static void SeedFixtures(AppDbContext db)
     {
         Place? pizzaPalace = db.Places
             .Include(p => p.OpeningHours)
@@ -57,32 +60,85 @@ public static class DbSeeder
 
         Place? kebab = db.Places
             .Include(p => p.OpeningHours)
+            .Include(p => p.ProductCategories)
+                .ThenInclude(pc => pc.Products)
             .FirstOrDefault(p => p.Name == "All Night Kebab");
 
         if (kebab == null)
         {
-            db.Places.Add(BuildAllNightKebab());
+            kebab = BuildAllNightKebab();
+            db.Places.Add(kebab);
         }
         else if (kebab.OpeningHours.Count == 0)
         {
             kebab.OpeningHours.AddRange(Open24HoursEveryDay());
         }
 
+        EnsureVisibilityFixtures(kebab);
+
         db.SaveChanges();
+    }
+
+    // The menu cases the public product endpoints have to filter. Filled in
+    // per item, so an existing place picks them up without its menu being
+    // rewritten.
+    private static void EnsureVisibilityFixtures(Place kebab)
+    {
+        ProductCategory? kebabs =
+            kebab.ProductCategories.FirstOrDefault(c => c.Name == "Kebabs");
+
+        if (kebabs == null)
+        {
+            kebabs = new ProductCategory { Name = "Kebabs", Hidden = false };
+            kebab.ProductCategories.Add(kebabs);
+        }
+
+        // Visible product — the one the public endpoints must still serve.
+        if (kebabs.Products.All(p => p.Name != "Kebab"))
+        {
+            kebabs.Products.Add(new Product
+            {
+                Name = "Kebab",
+                Description = "Your 3am friend",
+                Price = 6.50m,
+                Hidden = false,
+                ProductCategory = kebabs
+            });
+        }
+
+        // Hidden product inside a visible category: absent from the public
+        // product endpoints, present in the owner/admin read model.
+        if (kebabs.Products.All(p => p.Name != "Off-menu Special"))
+        {
+            kebabs.Products.Add(new Product
+            {
+                Name = "Off-menu Special",
+                Description = "Hidden product — must not appear publicly",
+                Price = 5.00m,
+                Hidden = true,
+                ProductCategory = kebabs
+            });
+        }
+
+        // Hidden category: its products are unreachable publicly, so the
+        // category id answers 404.
+        if (kebab.ProductCategories.All(c => c.Name != "Staff Only"))
+        {
+            var staffOnly = new ProductCategory { Name = "Staff Only", Hidden = true };
+            staffOnly.Products.Add(new Product
+            {
+                Name = "Chef's Special",
+                Description = "Lives under a hidden category",
+                Price = 4.00m,
+                Hidden = false,
+                ProductCategory = staffOnly
+            });
+            kebab.ProductCategories.Add(staffOnly);
+        }
     }
 
     private static Place BuildAllNightKebab()
     {
-        var kebabs = new ProductCategory { Name = "Kebabs", Hidden = false };
-        kebabs.Products.Add(new Product
-        {
-            Name = "Kebab",
-            Description = "Your 3am friend",
-            Price = 6.50m,
-            Hidden = false,
-            ProductCategory = kebabs
-        });
-
         var place = new Place
         {
             Name = "All Night Kebab",
@@ -92,7 +148,6 @@ public static class DbSeeder
             Address = "3 Kebab Lane, Vilnius"
         };
 
-        place.ProductCategories.Add(kebabs);
         place.OpeningHours.AddRange(Open24HoursEveryDay());
 
         return place;

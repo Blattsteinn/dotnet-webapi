@@ -7,6 +7,7 @@ using FoodOrderingApi.Dtos.Accounts.Admin;
 
 using Microsoft.AspNetCore.Authorization;
 using FoodOrderingApi.Authorization;
+using FoodOrderingApi.Dtos.Places;
 
 namespace FoodOrderingApi.Controllers.Accounts;
 
@@ -21,32 +22,7 @@ public class AdminController : ControllerBase
         _adminService = adminService;
     }
 
-    [HttpGet("places")]
-    public IActionResult GetAllPlaces()
-    {
-        List<Place> places = _adminService.GetAllPlaces();
-        return Ok(places);
-    }
-
-    [HttpGet("places/{id}")]
-    public IActionResult GetPlace(int id)
-    {
-        Place? place = _adminService.GetPlace(id);
-        if (place == null)
-            return NotFound("Place does not exist.");
-
-        return Ok(place);
-    }
-    
-    [HttpPost("places")]
-    public IActionResult AddPlace(Place place)
-    {
-        Place newPlace = _adminService.AddPlace(place);
-        return Ok(newPlace);
-    }
-
-
-
+    // Let admin delete a place
     [HttpDelete("places/{id}")]
     public IActionResult DeletePlace(int id)
     {
@@ -60,11 +36,14 @@ public class AdminController : ControllerBase
     // -------------------------------------------------------------------
     // -- Roles ----------------------------------------------------------
 
-    // # NOTE: do NOT revoke the Admin role from Admin account.
-    // # can only re-grant Admin directly in the database then.
+    // # WARNING: do NOT revoke the Admin role from Admin account.
+    // # Can only be re-grant directly in the database then.
+    
+    // ----------------------------------------------
+    // -- Granting owner role -----------------------
 
-    // This request grants an Owner / Admin role.
-    // It's the only way a user becomes able to create places.
+    // Promoting a user to Owner unlocks the /api/v1/owner endpoints for that user.
+
     [HttpPost("users/{userId}/roles")]
     public async Task<IActionResult> AssignRole(string userId, AssignRoleDto dto)
     {
@@ -78,9 +57,12 @@ public class AdminController : ControllerBase
         };
     }
 
-    // Revoking Owner's role
-    // Side effect: it also hides every place that user owned and clears those
-    // places' manager lists.
+    // ----------------------------------------------
+    // -- Revoking owner role -----------------------
+
+    // This also hides every place that user owned &&
+    // clears those places' manager list.
+
     [HttpDelete("users/{userId}/roles/{role}")]
     public async Task<IActionResult> RemoveRole(string userId, string role)
     {
@@ -95,20 +77,4 @@ public class AdminController : ControllerBase
         };
     }
 
-    // -------------------------------------------------------------------
-    // -- Visibility -----------------------------------------------------
-
-    // This REQUEST is for ownerless places or just for general admin control.
-    // Hides or re-publishes a single place.
-    [HttpPatch("places/{id}/visibility")]
-    public IActionResult SetVisibility(int id, SetPlaceVisibilityDto dto)
-    {
-        AdminVisibilityResult result = _adminService.SetVisibility(id, dto.Hidden);
-        return result switch
-        {
-            AdminVisibilityResult.Success       => Ok(new { placeId = id, hidden = dto.Hidden }),
-            AdminVisibilityResult.PlaceNotFound => NotFound("Place does not exist."),
-            _ => StatusCode(500)
-        };
-    }
 }

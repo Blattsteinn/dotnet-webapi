@@ -250,3 +250,8 @@ static async Task<ApplicationUser?> EnsureUserAsync(
 
     return result.Succeeded ? user : null;
 }
+
+// Exposes the top-level entry point to the integration tests
+// (WebApplicationFactory<Program>). Must stay last: top-level statements and
+// local functions have to precede type declarations.
+public partial class Program { }

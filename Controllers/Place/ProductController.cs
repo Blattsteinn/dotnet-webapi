@@ -20,7 +20,7 @@ public class ProductController : ControllerBase
     [HttpGet]
     public IActionResult GetAll(int productCategoryId)
     {
-        List<Product>? products = _productService.GetAll(productCategoryId);
+        List<ProductSummaryDto>? products = _productService.GetAll(productCategoryId);
         if(products == null)
             return NotFound("Product category does not exist.");
 

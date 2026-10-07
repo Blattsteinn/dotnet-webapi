@@ -15,30 +15,41 @@ public class ProductService
         _db = db;
     }
     
-    public List<Product>? GetAll(int productCategoryId)
+    // Either endpoint is a public read, so they apply the same visibility rules
+    // as the public place endpoints: a hidden category is reported exactly like
+    // a missing one, and hidden products never appear.
+    public List<ProductSummaryDto>? GetAll(int productCategoryId)
     {   
-        bool productCategoryExists = _db.ProductCategories.Any(pc => pc.Id == productCategoryId);
-        if(!productCategoryExists)
+        if (!VisibleCategoryExists(productCategoryId))
             return null;
 
-        List<Product> products = _db.Products
-        .Where(p => p.ProductCategoryId == productCategoryId)
+        return _db.Products
+        .Where(p => p.ProductCategoryId == productCategoryId && !p.Hidden)
+        .OrderBy(p => p.Id)
+        .ToList()
+        .Select(ProductDtoMapper.MapToSummaryDto)
         .ToList();
-
-        return products;
     }
 
     public GetProductDto? Get(int id, int productCategoryId)
     {
+        if (!VisibleCategoryExists(productCategoryId))
+            return null;
+
         var product = _db.Products
             .Include(p => p.AddOnCategories)
             .ThenInclude(aoc => aoc.AddOns.Where(ao => !ao.Hidden))
-            .FirstOrDefault(p => p.Id == id && p.ProductCategoryId == productCategoryId);
+            .FirstOrDefault(p => p.Id == id
+                && p.ProductCategoryId == productCategoryId
+                && !p.Hidden);
 
-        if(product == null || product.ProductCategoryId != productCategoryId)
+        if(product == null)
             return null;
 
         return ProductDtoMapper.MapToGetDto(product);
     }
+
+    private bool VisibleCategoryExists(int productCategoryId) =>
+        _db.ProductCategories.Any(pc => pc.Id == productCategoryId && !pc.Hidden);
 
 }

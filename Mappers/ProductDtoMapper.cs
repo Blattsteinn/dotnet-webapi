@@ -17,7 +17,6 @@ public static class ProductDtoMapper
                 product.Name,
                 product.Description,
                 product.Price,
-                product.Hidden,
                 product.AddOnCategories.Select(aoc => new AddOnCategoriesDetailDto(
                     aoc.Id,
                     aoc.Name,
@@ -26,10 +25,21 @@ public static class ProductDtoMapper
                     aoc.AddOns.Select(ao => new AddOnDetailDto(
                         ao.Id,
                         ao.Name,
-                        ao.Price,
-                        ao.Hidden
+                        ao.Price
                     )).ToList()
                 )).ToList()
+            );
+        }
+
+    // Flat list entry. No Hidden, because the caller only ever sees the
+    // products that survived the visibility filter.
+    public static ProductSummaryDto MapToSummaryDto(Product product)
+        {
+            return new ProductSummaryDto(
+                product.Id,
+                product.Name,
+                product.Description,
+                product.Price
             );
         }
 }
