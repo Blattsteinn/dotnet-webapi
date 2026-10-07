@@ -43,10 +43,12 @@ public class OrderService
     private bool OwnerHoldsPlace(string ownerId, int placeId) =>
         _db.PlaceOwnerships.Any(o => o.PlaceId == placeId && o.OwnerId == ownerId);
 
-    // The owner of a place is also a manager of it; on top of that the owner can
-    // add other users as managers through the Managers table.
-    private bool ManagesPlace(string userId, int placeId) =>
-        OwnerHoldsPlace(userId, placeId) ||
+    // An ownership row only grants control while the caller still holds the
+    // Owner role; a Managers row grants control on its own. Gating the owner
+    // branch on the role is what makes a demotion revoke access without having
+    // to delete the ownership history.
+    private bool ManagesPlace(string userId, bool isOwner, int placeId) =>
+        (isOwner && OwnerHoldsPlace(userId, placeId)) ||
         _db.Managers.Any(m => m.PlaceId == placeId && m.UserId == userId);
 
     // ---------------------------------------------------------------------------
@@ -221,10 +223,11 @@ public class OrderService
     // PLACE MANAGER SCOPE
     // ---------------------------------------------------------------------------
     // The contents of a placed order are immutable; only the status can change.
-    // The caller may be the owner or one of the place's managers.
-    public GetOrderDto? SetStatusForPlace(string managerId, int placeId, int orderId, OrderStatus status)
+    // The caller may be the place's owner (while still holding the Owner role)
+    // or one of the place's managers.
+    public GetOrderDto? SetStatusForPlace(string callerId, bool callerIsOwner, int placeId, int orderId, OrderStatus status)
     {
-        if (!ManagesPlace(managerId, placeId))
+        if (!ManagesPlace(callerId, callerIsOwner, placeId))
             return null;
 
         Order? order = WithItems()

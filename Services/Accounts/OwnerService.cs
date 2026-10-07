@@ -146,6 +146,12 @@ public class OwnerService
 
         return ManagerRoleResult.Success;
     }
+
+    public int RemoveManager(string ownerId, int placeId, string userId)
+    {
+        return -1; 
+    }
+
     private static OwnedPlaceDto ToDto(Place place) => new(
         place.Id,
         place.Name,

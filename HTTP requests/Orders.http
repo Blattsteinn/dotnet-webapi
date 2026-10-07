@@ -104,7 +104,8 @@ Content-Type: application/json
 
 }
 
-# Changing a status is no longer a customer action — it is owner-scoped:
-#   PATCH /api/v1/owner/places/{placeId}/orders/{orderId}/status
-# See Owners.http.
+# Changing a status is no longer a customer action — it is manager-scoped:
+#   PATCH /api/v1/manager/places/{placeId}/orders/{orderId}/status
+# The owner of the place counts as a manager, so both owners and the users the
+# owner added to the place's Managers table can call it.
 # OrderStatus: 0 = Pending, 1 = Confirmed, 2 = Preparing, 3 = Ready, 4 = Completed, 5 = Cancelled

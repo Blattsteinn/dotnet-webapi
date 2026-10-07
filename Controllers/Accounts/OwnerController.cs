@@ -33,19 +33,17 @@ public class OwnerController : ControllerBase
     // This finds an user from auth token.
     private string CallerId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-    // The only role this controller delegates. Manager is not an Identity role —
-    // it is a per-place row — so the value is a label, not a claim.
     private const string ManagerRole = "Manager";
 
     // ---------------------------------------------------------------------------
     // ---------------------------------------------------------------------------
-    // ADDING USER AS A MANAGER
+    // ADDING / REMOVING USER AS A MANAGER
     // ---------------------------------------------------------------------------
+    // uses OwnerService.cs
+
     [HttpPatch("places/{placeId}/managers/{userId}/roles")]
     public IActionResult AssignRole(int placeId, string userId, AssignRoleDto dto)
     {
-        // Manager is the only role this endpoint hands out; anything else would
-        // be an attempt to escalate through a place the caller merely owns.
         if (!string.Equals(dto.Role, ManagerRole, StringComparison.OrdinalIgnoreCase))
             return BadRequest($"Only the '{ManagerRole}' role can be assigned here.");
 
@@ -58,6 +56,16 @@ public class OwnerController : ControllerBase
             ManagerRoleResult.UserNotFound  => NotFound("User does not exist."),
             _ => StatusCode(500)
         };
+    }
+
+    [HttpDelete("places/{placeId}/managers/{userId}/roles")]
+    public IActionResult RemoveRole(int placeId, string userId, AssignRoleDto dto)
+    {
+        if (!string.Equals(dto.Role, ManagerRole, StringComparison.OrdinalIgnoreCase))
+            return BadRequest($"Only the '{ManagerRole}' role can be assigned here.");
+
+        int result = _ownerService.RemoveManager(CallerId, placeId, userId);
+        return Ok(result);
     }
 
     // ---------------------------------------------------------------------------

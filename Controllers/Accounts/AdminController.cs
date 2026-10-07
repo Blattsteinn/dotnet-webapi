@@ -79,7 +79,8 @@ public class AdminController : ControllerBase
     }
 
     // Revoking Owner's role
-    // Side effect: it also hides every place that user owned.
+    // Side effect: it also hides every place that user owned and clears those
+    // places' manager lists.
     [HttpDelete("users/{userId}/roles/{role}")]
     public async Task<IActionResult> RemoveRole(string userId, string role)
     {

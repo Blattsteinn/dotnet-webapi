@@ -1,5 +1,6 @@
 using System.Security.Claims;
 
+using FoodOrderingApi.Authorization;
 using FoodOrderingApi.Dtos.Orders;
 using FoodOrderingApi.Services.Orders;
 using FoodOrderingApi.Services.Accounts;
@@ -12,7 +13,8 @@ namespace FoodOrderingApi.Controllers.Accounts;
 // Conditions for callers:
 // 1) any authenticated user may reach these endpoints; "manager" is not an
 //    Identity role but a per-place row in the Managers table.
-// 2) every operation is then scoped to the places the caller owns or manages.
+// 2) every operation is then scoped to the places the caller owns *while still
+//    holding the Owner role* or the places they were added to as a manager.
 [ApiController]
 [Route("api/v1/manager")]
 [Authorize]
@@ -44,8 +46,8 @@ public class ManagerController : ControllerBase
         if (dto.Status == null)
             return BadRequest("A status is required.");
 
-        GetOrderDto? updated =
-            _orderService.SetStatusForPlace(CallerId, placeId, orderId, dto.Status.Value);
+        GetOrderDto? updated = _orderService.SetStatusForPlace(
+            CallerId, User.IsOwner(), placeId, orderId, dto.Status.Value);
 
         if (updated == null)
             return NotFound("Order does not exist for this place.");

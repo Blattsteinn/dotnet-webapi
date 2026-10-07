@@ -134,8 +134,14 @@ public class AdminService
         await _userManager.UpdateSecurityStampAsync(user);
 
         if (known == Roles.Owner)
+        {
             // Here we make all of user owned places hidden
             SetVisibilityForOwner(user.Id, hidden: true);
+
+            // The manager grants on those places were the owner's to hand out,
+            // so they go with the role.
+            ClearManagersForOwner(user.Id);
+        }
 
         return AdminRoleResult.Success;
     }
@@ -166,6 +172,24 @@ public class AdminService
         foreach (var place in owned)
             place.Hidden = hidden;
 
+        _db.SaveChanges();
+    }
+
+    // Used when owner is demoted.
+    // RemoveRoleAsync calls this: drops every Managers row that points at one of
+    // the owner's places. The ownership rows themselves are kept (see
+    // RemoveRoleAsync), but the manager list is a live grant, so it does not
+    // survive the role.
+    private void ClearManagersForOwner(string ownerId)
+    {
+        var ownedPlaceIds = _db.PlaceOwnerships
+            .Where(o => o.OwnerId == ownerId)
+            .Select(o => o.PlaceId);
+
+        var grants = _db.Managers
+            .Where(m => ownedPlaceIds.Contains(m.PlaceId));
+
+        _db.Managers.RemoveRange(grants);
         _db.SaveChanges();
     }
 
