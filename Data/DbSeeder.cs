@@ -15,7 +15,8 @@ public static class DbSeeder
             Name = "Pizza Palace",
             Latitude = 40.7128,
             Longtitude = -74.0060,
-            Description = "Best pizza in town"
+            Description = "Best pizza in town",
+            Address = "1 Pizza Plaza, New York, NY"
         };
 
         var pizzasCategory = new ProductCategory
@@ -182,7 +183,8 @@ public static class DbSeeder
             Name = "Burger Joint",
             Latitude = 34.0522,
             Longtitude = -118.2437,
-            Description = "Best burgers in town"
+            Description = "Best burgers in town",
+            Address = "2 Burger Boulevard, Los Angeles, CA"
         };
 
         var burgersCategory = new ProductCategory

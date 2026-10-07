@@ -16,6 +16,7 @@ public static class PlaceDtoMapper
                 Id: place.Id,
                 Name: place.Name,
                 Description: place.Description,
+                Address: place.Address,
                 Latitude: place.Latitude,
                 Longtitude: place.Longtitude,
                 Hidden: place.Hidden
@@ -30,6 +31,7 @@ public static class PlaceDtoMapper
                 Longtitude: place.Longtitude,
                 Name: place.Name,
                 Description: place.Description,
+                Address: place.Address,
                 Hidden: place.Hidden,
                 ProductCategories: place.ProductCategories
                     .Select(category => new ProductCategoriesDetailDto(

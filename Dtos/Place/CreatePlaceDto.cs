@@ -17,5 +17,8 @@ public record CreatePlaceDto(
     double Longtitude,
 
     [MaxLength(500)]
-    string? Description
+    string? Description,
+
+    [MaxLength(500)]
+    string? Address
 );

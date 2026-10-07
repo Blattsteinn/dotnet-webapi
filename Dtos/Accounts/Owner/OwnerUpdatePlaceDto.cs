@@ -16,6 +16,9 @@ public record OwnerUpdatePlaceDto(
     [MaxLength(500)]
     string? Description,
 
+    [MaxLength(500)]
+    string? Address,
+
     bool Hidden,
     
     List<OwnerUpdateCategoryDto> ProductCategories

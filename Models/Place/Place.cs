@@ -19,6 +19,9 @@ public class Place
     [MaxLength(500)]
     public string? Description { get; set; }
 
+    [MaxLength(500)]
+    public string? Address { get; set; }
+
     // Set by the system when the owning user loses the Owner role, or by an
     // admin directly. Hidden places disappear from the public endpoints.
     public bool Hidden { get; set; }

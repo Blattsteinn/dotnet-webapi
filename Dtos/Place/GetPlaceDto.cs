@@ -14,6 +14,7 @@ public record GetPlaceDto(
     double Longtitude,
     string Name,
     string? Description,
+    string? Address,
     bool Hidden,
     List <ProductCategoriesDetailDto> ProductCategories
 );

@@ -6,6 +6,7 @@ public record OwnedPlaceDto(
     int Id,
     string Name,
     string? Description,
+    string? Address,
     double Latitude,
     double Longtitude,
     bool Hidden

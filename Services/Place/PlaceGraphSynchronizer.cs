@@ -55,6 +55,7 @@ public static class PlaceGraphSynchronizer
         place.Latitude    = dto.Latitude;
         place.Longtitude  = dto.Longtitude;
         place.Description = dto.Description;
+        place.Address     = dto.Address;
         place.Hidden      = dto.Hidden;
 
         SyncCategories(db, place, dto.ProductCategories);

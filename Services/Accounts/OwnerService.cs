@@ -44,6 +44,7 @@ public class OwnerService
                 p.Id,
                 p.Name,
                 p.Description,
+                p.Address,
                 p.Latitude,
                 p.Longtitude,
                 p.Hidden))
@@ -70,6 +71,7 @@ public class OwnerService
         {
             Name        = dto.Name,
             Description = dto.Description,
+            Address     = dto.Address,
             Latitude    = dto.Latitude,
             Longtitude  = dto.Longtitude,
             Ownership   = new PlaceOwnership { OwnerId = ownerId }
@@ -199,6 +201,7 @@ public class OwnerService
         place.Id,
         place.Name,
         place.Description,
+        place.Address,
         place.Latitude,
         place.Longtitude,
         place.Hidden);
