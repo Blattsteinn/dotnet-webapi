@@ -1,6 +1,7 @@
 using System.Security.Claims;
 
 using FoodOrderingApi.Authorization;
+using FoodOrderingApi.Controllers;
 using FoodOrderingApi.Dtos.Orders;
 using FoodOrderingApi.Services.Orders;
 using FoodOrderingApi.Services.Accounts;
@@ -42,15 +43,15 @@ public class ManagerController : ControllerBase
     public IActionResult UpdateOrderStatus(int placeId, int orderId, UpdateOrderDto dto)
     {
         if (dto.Status == null)
-            return BadRequest("A status is required.");
+            return this.BadRequestProblem("A status is required.");
 
         (GetOrderDto? updated, SetOrderStatusResult result) = _orderService.SetStatusForPlace(
             CallerId, User.IsOwner(), placeId, orderId, dto.Status.Value);
 
         return result switch
         {
-            SetOrderStatusResult.OrderNotFound => NotFound("Order does not exist for this place."),
-            SetOrderStatusResult.InvalidTransition => Conflict("The requested status transition is not allowed."),
+            SetOrderStatusResult.OrderNotFound => this.NotFoundProblem("Order does not exist for this place."),
+            SetOrderStatusResult.InvalidTransition => this.ConflictProblem("The requested status transition is not allowed."),
             SetOrderStatusResult.Success => Ok(updated),
             _ => StatusCode(500)
         };
@@ -67,7 +68,7 @@ public class ManagerController : ControllerBase
         List<GetOrderDto>? orders = _orderService.GetForPlace(CallerId, User.IsOwner(), placeId);
 
         if (orders == null)
-            return NotFound("Place does not exist or is not yours.");
+            return this.NotFoundProblem("Place does not exist or is not yours.");
 
         return Ok(orders);
     }
@@ -77,7 +78,7 @@ public class ManagerController : ControllerBase
     {
         GetOrderDto? order = _orderService.GetForPlace(CallerId, User.IsOwner(), placeId, orderId);
         if (order == null)
-            return NotFound("Order does not exist for this place.");
+            return this.NotFoundProblem("Order does not exist for this place.");
 
         return Ok(order);
     }

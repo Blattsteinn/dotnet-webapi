@@ -1,3 +1,4 @@
+using FoodOrderingApi.Controllers;
 using FoodOrderingApi.Dtos.Accounts.User;
 using FoodOrderingApi.Models.Users;
 using Microsoft.AspNetCore.Identity;
@@ -42,7 +43,10 @@ public class AuthController : ControllerBase
 
         if (!result.Succeeded)
         {
-            return BadRequest(result.Errors);
+            foreach (var error in result.Errors)
+                ModelState.AddModelError(error.Code, error.Description);
+
+            return ValidationProblem(ModelState);
         }
 
         return Ok();
@@ -56,7 +60,7 @@ public class AuthController : ControllerBase
         var user = await _userManager.FindByEmailAsync(dto.Email);
 
         if (user == null)
-            return Unauthorized();
+            return this.UnauthorizedProblem("Invalid email or password.");
 
         var validPassword = await _userManager.CheckPasswordAsync(
             user,
@@ -64,7 +68,7 @@ public class AuthController : ControllerBase
         );
 
         if (!validPassword)
-            return Unauthorized();
+            return this.UnauthorizedProblem("Invalid email or password.");
 
         var roles = await _userManager.GetRolesAsync(user);
 

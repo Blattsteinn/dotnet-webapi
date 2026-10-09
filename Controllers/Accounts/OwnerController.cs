@@ -1,6 +1,7 @@
 using System.Security.Claims;
 
 using FoodOrderingApi.Authorization;
+using FoodOrderingApi.Controllers;
 using FoodOrderingApi.Dtos.Places;
 using FoodOrderingApi.Services.Accounts;
 using Microsoft.AspNetCore.Authorization;
@@ -36,7 +37,7 @@ public class OwnerController : ControllerBase
     {
         List<ManagerDto>? managers = _ownerService.GetManagers(CallerId, placeId);
         if (managers == null)
-            return NotFound("Place does not exist or is not yours.");
+            return this.NotFoundProblem("Place does not exist or is not yours.");
 
         return Ok(managers);
     }
@@ -49,9 +50,9 @@ public class OwnerController : ControllerBase
         return result switch
         {
             ManagerResult.Success       => Ok(new { placeId, email = dto.Email }),
-            ManagerResult.PlaceNotFound => NotFound("Place does not exist."),
+            ManagerResult.PlaceNotFound => this.NotFoundProblem("Place does not exist."),
             ManagerResult.NotTheOwner   => Forbid(),
-            ManagerResult.UserNotFound  => NotFound("User does not exist."),
+            ManagerResult.UserNotFound  => this.NotFoundProblem("User does not exist."),
             _ => StatusCode(500)
         };
     }
@@ -63,9 +64,9 @@ public class OwnerController : ControllerBase
         return result switch
         {
             ManagerResult.Success       => NoContent(),
-            ManagerResult.PlaceNotFound => NotFound("Place does not exist."),
+            ManagerResult.PlaceNotFound => this.NotFoundProblem("Place does not exist."),
             ManagerResult.NotTheOwner   => Forbid(),
-            ManagerResult.UserNotFound  => NotFound("User does not exist."),
+            ManagerResult.UserNotFound  => this.NotFoundProblem("User does not exist."),
             _ => StatusCode(500)
         };
     }
@@ -86,7 +87,7 @@ public class OwnerController : ControllerBase
     {
         PrivatePlaceDto? place = _ownerService.GetPlace(CallerId, id);
         if (place == null)
-            return NotFound("Place does not exist or is not yours.");
+            return this.NotFoundProblem("Place does not exist or is not yours.");
 
         return Ok(place);
     }
@@ -105,10 +106,10 @@ public class OwnerController : ControllerBase
         return result switch
         {
             OwnerPlaceResult.Success       => Ok(updated),
-            OwnerPlaceResult.PlaceNotFound => NotFound("Place does not exist."),
+            OwnerPlaceResult.PlaceNotFound => this.NotFoundProblem("Place does not exist."),
             OwnerPlaceResult.NotTheOwner   => Forbid(),
             OwnerPlaceResult.UnknownChildId =>
-                BadRequest("JSON included a child id that does not exist under this place."),
+                this.BadRequestProblem("JSON included a child id that does not exist under this place."),
             _ => StatusCode(500)
         };
     }
@@ -121,8 +122,8 @@ public class OwnerController : ControllerBase
         return result switch
         {
             OwnerHoursResult.Success       => Ok(new { placeId, openingHours = hours }),
-            OwnerHoursResult.PlaceNotFound => NotFound("Place does not exist or is not yours."),
-            OwnerHoursResult.InvalidSchedule => BadRequest(error),
+            OwnerHoursResult.PlaceNotFound => this.NotFoundProblem("Place does not exist or is not yours."),
+            OwnerHoursResult.InvalidSchedule => this.BadRequestProblem(error),
             _ => StatusCode(500)
         };
     }

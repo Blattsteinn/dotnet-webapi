@@ -1,3 +1,4 @@
+using FoodOrderingApi.Controllers;
 using FoodOrderingApi.Services.Places;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,7 +32,7 @@ public class PlaceController : ControllerBase
         PublicPlaceDto? place = _placeService.Get(id);
         if (place == null)
         {
-            return NotFound("Place does not exist.");
+            return this.NotFoundProblem("Place does not exist.");
         }
 
         return Ok(place);

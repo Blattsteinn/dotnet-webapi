@@ -1,4 +1,5 @@
 
+using FoodOrderingApi.Controllers;
 using FoodOrderingApi.Services.Accounts;
 using Microsoft.AspNetCore.Mvc;
 
@@ -45,8 +46,8 @@ public class AdminController : ControllerBase
         return result switch
         {
             AdminRoleResult.Success      => Ok(new { userId, role = Roles.Owner }),
-            AdminRoleResult.UserNotFound => NotFound("User does not exist."),
-            AdminRoleResult.RoleNotAllowed => BadRequest($"Only the '{Roles.Owner}' role can be granted here."),
+            AdminRoleResult.UserNotFound => this.NotFoundProblem("User does not exist."),
+            AdminRoleResult.RoleNotAllowed => this.BadRequestProblem($"Only the '{Roles.Owner}' role can be granted here."),
             _ => StatusCode(500)
         };
     }
@@ -64,9 +65,9 @@ public class AdminController : ControllerBase
         return result switch
         {
             AdminRoleResult.Success      => NoContent(),
-            AdminRoleResult.UserNotFound => NotFound("User does not exist."),
-            AdminRoleResult.RoleNotAllowed => BadRequest($"Only the '{Roles.Owner}' role can be revoked here."),
-            AdminRoleResult.NotInRole    => BadRequest("User does not have that role."),
+            AdminRoleResult.UserNotFound => this.NotFoundProblem("User does not exist."),
+            AdminRoleResult.RoleNotAllowed => this.BadRequestProblem($"Only the '{Roles.Owner}' role can be revoked here."),
+            AdminRoleResult.NotInRole    => this.BadRequestProblem("User does not have that role."),
             _ => StatusCode(500)
         };
     }

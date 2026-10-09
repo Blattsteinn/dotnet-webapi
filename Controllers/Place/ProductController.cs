@@ -1,5 +1,6 @@
 
 
+using FoodOrderingApi.Controllers;
 using FoodOrderingApi.Models.Places;
 using FoodOrderingApi.Services.Places;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +23,7 @@ public class ProductController : ControllerBase
     {
         List<ProductSummaryDto>? products = _productService.GetAll(productCategoryId);
         if(products == null)
-            return NotFound("Product category does not exist.");
+            return this.NotFoundProblem("Product category does not exist.");
 
         return Ok(products);
     }   
@@ -32,7 +33,7 @@ public class ProductController : ControllerBase
     {
         GetProductDto? product = _productService.Get(id, productCategoryId);
         if(product == null)
-            return NotFound("Product does not exist.");
+            return this.NotFoundProblem("Product does not exist.");
 
         return Ok(product);
     }

@@ -35,6 +35,26 @@ builder.Services.AddControllers()
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+// Failures — unhandled exceptions, empty-body 401/403/404 and the controllers'
+// explicit errors — all come back as RFC 7807 Problem Details, so the frontend
+// has a single error shape to parse.
+builder.Services.AddProblemDetails();
+
+// The browser frontend is served from an origin other than the API, so the
+// requests it makes are cross-origin. Allowed origins are configuration-driven
+// (Cors:AllowedOrigins, a string array) so each environment lists its own; with
+// none configured, cross-origin requests are refused.
+const string FrontendCors = "Frontend";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(FrontendCors, policy => policy
+        .WithOrigins(
+            builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
+        .AllowAnyHeader()
+        .AllowAnyMethod());
+});
+
 // Injections?
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(
@@ -226,7 +246,14 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+
 app.UseHttpsRedirection();
+
+// Before authentication/authorization: a preflight OPTIONS request carries no
+// token, so it has to be answered by CORS rather than rejected with a 401.
+app.UseCors(FrontendCors);
 
 app.UseAuthentication();
 app.UseAuthorization();

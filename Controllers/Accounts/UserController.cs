@@ -1,5 +1,6 @@
 using System.Security.Claims;
 
+using FoodOrderingApi.Controllers;
 using FoodOrderingApi.Dtos.Orders;
 using FoodOrderingApi.Services.Orders;
 using Microsoft.AspNetCore.Authorization;
@@ -35,7 +36,7 @@ public class UsersController : ControllerBase
     {
         GetOrderDto? order = _orderService.GetForUser(CallerId, orderId);
         if (order == null)
-            return NotFound("Order does not exist.");
+            return this.NotFoundProblem("Order does not exist.");
 
         return Ok(order);
     }
@@ -51,8 +52,8 @@ public class UsersController : ControllerBase
 
         return result switch
         {
-            CancelOrderResult.OrderNotFound => NotFound("Order does not exist."),
-            CancelOrderResult.NotPending => Conflict("Only pending orders can be cancelled."),
+            CancelOrderResult.OrderNotFound => this.NotFoundProblem("Order does not exist."),
+            CancelOrderResult.NotPending => this.ConflictProblem("Only pending orders can be cancelled."),
             CancelOrderResult.Success => Ok(cancelled),
             _ => StatusCode(500)
         };
