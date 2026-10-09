@@ -7,9 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FoodOrderingApi.Controllers.Accounts;
 
-// "My orders" — every route here is scoped to the caller's own id, which comes
-// from the token and never from the URL, so a customer can only ever read their
-// own history.
+
 [ApiController]
 [Route("api/v1/orders")]
 [Authorize]
@@ -40,5 +38,23 @@ public class UsersController : ControllerBase
             return NotFound("Order does not exist.");
 
         return Ok(order);
+    }
+
+    // Cancels the caller's own order while it is still Pending. A non-pending
+    // order cannot be cancelled here; 404 also covers orders that are not the
+    // caller's, so the endpoint cannot be used to probe order ids.
+    [HttpPost("{orderId}/cancel")]
+    public IActionResult CancelMyOrder(int orderId)
+    {
+        (GetOrderDto? cancelled, CancelOrderResult result) =
+            _orderService.CancelForUser(CallerId, orderId);
+
+        return result switch
+        {
+            CancelOrderResult.OrderNotFound => NotFound("Order does not exist."),
+            CancelOrderResult.NotPending => Conflict("Only pending orders can be cancelled."),
+            CancelOrderResult.Success => Ok(cancelled),
+            _ => StatusCode(500)
+        };
     }
 }

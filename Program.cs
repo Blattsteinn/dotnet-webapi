@@ -133,7 +133,6 @@ builder.Services.AddScoped<OrderService>();
 
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<OwnerService>();
-builder.Services.AddScoped<ManagerService>();
 
 
 var app = builder.Build();

@@ -30,6 +30,13 @@ public enum SetOrderStatusResult
     InvalidTransition,
 }
 
+public enum CancelOrderResult
+{
+    Success,
+    OrderNotFound,
+    NotPending,
+}
+
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // TWO SCOPES:
@@ -88,6 +95,26 @@ public class OrderService
             .FirstOrDefault(o => o.Id == orderId && o.UserId == userId);
 
         return order == null ? null : OrderDtoMapper.MapToDto(order);
+    }
+
+    // A customer may cancel only their own order, and only while it is still
+    // Pending. A missing order and one owned by somebody else both map to
+    // OrderNotFound so the endpoint cannot be used to probe which ids exist.
+    public (GetOrderDto?, CancelOrderResult) CancelForUser(string userId, int orderId)
+    {
+        Order? order = WithItems()
+            .FirstOrDefault(o => o.Id == orderId && o.UserId == userId);
+
+        if (order == null)
+            return (null, CancelOrderResult.OrderNotFound);
+
+        if (order.Status != OrderStatus.Pending)
+            return (null, CancelOrderResult.NotPending);
+
+        order.Status = OrderStatus.Cancelled;
+        _db.SaveChanges();
+
+        return (OrderDtoMapper.MapToDto(order), CancelOrderResult.Success);
     }
 
     // userId here comes from the caller's token.
