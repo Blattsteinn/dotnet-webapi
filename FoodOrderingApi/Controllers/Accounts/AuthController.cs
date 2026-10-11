@@ -1,0 +1,126 @@
+using FoodOrderingApi.Controllers;
+using FoodOrderingApi.Dtos.Accounts.User;
+using FoodOrderingApi.Models.Users;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using System.Linq; 
+
+using FoodOrderingApi.Authorization;
+
+namespace FoodOrderingApi.Controllers.Accounts;
+
+[ApiController]
+[Route("api/v1/auth")]
+public class AuthController : ControllerBase
+{
+    private readonly UserManager<ApplicationUser> _userManager;
+
+    private readonly IConfiguration _configuration;
+
+    public AuthController(
+        UserManager<ApplicationUser> userManager,
+        IConfiguration configuration)
+    {
+        _userManager = userManager;
+        _configuration = configuration;
+    }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(RegisterDto dto)
+    {
+        var user = new ApplicationUser
+        {
+            UserName = dto.Email,
+            Email = dto.Email
+        };
+
+        var result = await _userManager.CreateAsync(user, dto.Password);
+
+        if (!result.Succeeded)
+        {
+            foreach (var error in result.Errors)
+                ModelState.AddModelError(error.Code, error.Description);
+
+            return ValidationProblem(ModelState);
+        }
+
+        return Ok();
+    }
+
+
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login(LoginDto dto)
+    {
+        var user = await _userManager.FindByEmailAsync(dto.Email);
+
+        if (user == null)
+            return this.UnauthorizedProblem("Invalid email or password.");
+
+        var validPassword = await _userManager.CheckPasswordAsync(
+            user,
+            dto.Password
+        );
+
+        if (!validPassword)
+            return this.UnauthorizedProblem("Invalid email or password.");
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        var claims = new List<Claim>
+        {
+            new Claim(
+                ClaimTypes.NameIdentifier,
+                user.Id
+            ),
+            new Claim(
+                ClaimTypes.Email,
+                user.Email!
+            )
+        };
+
+        claims.AddRange(
+            roles.Select(role => new Claim(ClaimTypes.Role, role))
+        );
+
+        // Stamped into the token so the API can tell whether the user's roles
+        // have changed since this token was issued.
+        claims.Add(new Claim(
+            AppClaimTypes.SecurityStamp,
+            await _userManager.GetSecurityStampAsync(user)
+        ));
+
+        var key = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(
+                _configuration["Jwt:Key"]!
+            )
+        );
+
+        var credentials = new SigningCredentials(
+            key,
+            SecurityAlgorithms.HmacSha256
+        );
+
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"],
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(1),
+            signingCredentials: credentials
+        );
+
+        return Ok(new
+        {
+            token = new JwtSecurityTokenHandler().WriteToken(token),
+            userId = user.Id,
+            email = user.Email,
+            roles
+        });
+    }
+
+}
